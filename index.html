@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>颱風動態即時影像站</title>
+<title data-i18n="title">颱風動態即時影像站</title>
 <style>
   :root{
     --bg:#070b10;
@@ -22,8 +22,26 @@
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--body);}
+  body{overflow-x:hidden;}
   @media (prefers-reduced-motion: reduce){
     *{animation:none !important; transition:none !important;}
+  }
+
+  /* ---------- LANGUAGE SWITCHER ---------- */
+  .langbar{
+    position:relative;
+    display:flex; gap:6px; flex-wrap:wrap;
+    margin-bottom:22px;
+  }
+  .langbar button{
+    font-family:var(--mono); font-size:11px; letter-spacing:0.04em;
+    background:transparent; border:1px solid var(--panel-line);
+    color:var(--muted); padding:5px 11px; border-radius:20px;
+    cursor:pointer;
+  }
+  .langbar button:hover{border-color:var(--sweep); color:var(--sweep);}
+  .langbar button[aria-pressed="true"]{
+    background:var(--sweep); color:#04211c; border-color:var(--sweep); font-weight:600;
   }
 
   /* ---------- HEADER / RADAR SWEEP SIGNATURE ---------- */
@@ -31,7 +49,7 @@
     position:relative;
     overflow:hidden;
     border-bottom:1px solid var(--panel-line);
-    padding:56px 24px 40px;
+    padding:40px 24px 40px;
     background:
       radial-gradient(circle at 82% 20%, rgba(63,224,197,0.06), transparent 60%),
       var(--bg);
@@ -45,6 +63,7 @@
       repeating-radial-gradient(circle, transparent 0 39px, var(--panel-line) 39px 40px),
       var(--scope);
     opacity:0.55;
+    pointer-events:none;
   }
   .scope::before{
     content:'';
@@ -61,9 +80,10 @@
     color:var(--sweep);
     text-transform:uppercase;
     display:flex; align-items:center; gap:8px;
+    flex-wrap:wrap;
   }
   .eyebrow .dot{
-    width:7px;height:7px;border-radius:50%;
+    width:7px;height:7px;border-radius:50%; flex:none;
     background:var(--red);
     box-shadow:0 0 8px var(--red);
     animation:blink 1.6s ease-in-out infinite;
@@ -72,10 +92,11 @@
   h1{
     font-family:var(--disp);
     font-weight:700;
-    font-size:clamp(38px,6vw,64px);
+    font-size:clamp(34px,7vw,64px);
     letter-spacing:0.01em;
     margin:14px 0 8px;
     max-width:820px;
+    line-height:1.08;
   }
   header p.sub{
     color:var(--muted);
@@ -90,11 +111,12 @@
     font-family:var(--mono);
     font-size:13px;
     color:var(--muted);
+    line-height:1.6;
   }
   .clock b{color:var(--text); font-weight:600;}
 
   /* ---------- LAYOUT ---------- */
-  main{max-width:1180px; margin:0 auto; padding:40px 24px 80px;}
+  main{max-width:1180px; margin:0 auto; padding:40px 20px 80px;}
   section{margin-bottom:56px;}
   .section-head{
     display:flex; align-items:baseline; justify-content:space-between; gap:16px;
@@ -124,12 +146,13 @@
   }
   .panel-bar{
     display:flex; align-items:center; justify-content:space-between;
+    gap:10px; flex-wrap:wrap;
     padding:10px 14px;
     border-bottom:1px solid var(--panel-line);
     font-family:var(--mono); font-size:12px; color:var(--muted);
   }
   .panel-bar .name{color:var(--text); font-weight:600; letter-spacing:0.02em;}
-  .panel-bar .stamp{font-size:11px;}
+  .panel-bar .stamp{font-size:11px; white-space:nowrap;}
   .img-wrap{
     position:relative;
     background:#000;
@@ -144,6 +167,7 @@
     display:none;
     color:var(--muted); font-family:var(--mono); font-size:12px;
     padding:24px; text-align:center; line-height:1.8;
+    flex-direction:column; gap:8px;
   }
   .img-wrap .fallback a{color:var(--sweep);}
   .refresh-btn{
@@ -158,6 +182,8 @@
   }
 
   .map-panel iframe{width:100%; height:560px; border:0; display:block;}
+  @media (max-width:820px){ .map-panel iframe{ height:440px; } }
+  @media (max-width:480px){ .map-panel iframe{ height:360px; } }
 
   .notice{
     font-family:var(--mono); font-size:12px; color:var(--muted);
@@ -177,6 +203,7 @@
     background:var(--panel);
     padding:16px 18px;
     text-decoration:none; color:var(--text);
+    flex-wrap:wrap;
   }
   .bulletin a:hover{background:#131c26;}
   .bulletin .l-name{font-weight:600; font-size:15px;}
@@ -185,122 +212,138 @@
 
   footer{
     border-top:1px solid var(--panel-line);
-    padding:28px 24px 60px;
+    padding:28px 20px 60px;
     max-width:1180px; margin:0 auto;
     color:var(--muted); font-size:12.5px; line-height:1.9;
     font-family:var(--mono);
   }
   footer a{color:var(--sweep); text-decoration:none;}
+
+  @media (max-width:600px){
+    header{padding:28px 16px 32px;}
+    .scope{width:280px; height:280px; top:-90px; right:-90px;}
+    .eyebrow{font-size:11px;}
+    header p.sub{font-size:14px;}
+    main{padding:32px 16px 60px;}
+    .section-head h2{font-size:19px;}
+    .bulletin a{padding:14px;}
+  }
 </style>
 </head>
 <body>
 
 <header>
   <div class="scope" aria-hidden="true"></div>
-  <div class="eyebrow"><span class="dot"></span> 即時觀測 · 中央氣象署 / Himawari 衛星</div>
-  <h1>颱風動態<br>即時影像站</h1>
-  <p class="sub">彙整中央氣象署最新衛星雲圖、雷達回波，以及 Windy 互動風暴地圖，讓你在同一個畫面掌握颱風動態。圖片每 10 分鐘自動更新一次。</p>
-  <div class="clock">現在時間：<b id="now">—</b>　（頁面內時鐘，僅供對照影像時間戳）</div>
+  <div class="langbar" role="group" aria-label="Language">
+    <button type="button" onclick="setLang('en')" data-lang-btn="en">EN</button>
+    <button type="button" onclick="setLang('zh-Hant')" data-lang-btn="zh-Hant">繁中</button>
+    <button type="button" onclick="setLang('zh-Hans')" data-lang-btn="zh-Hans">简中</button>
+    <button type="button" onclick="setLang('ja')" data-lang-btn="ja">日本語</button>
+  </div>
+  <div class="eyebrow"><span class="dot"></span> <span data-i18n="eyebrow">即時觀測 · 中央氣象署 / Himawari 衛星</span></div>
+  <h1 data-i18n="h1" data-i18n-html="1">颱風動態<br>即時影像站</h1>
+  <p class="sub" data-i18n="sub">彙整最新衛星雲圖、雷達回波，以及 Windy 互動風暴地圖，讓你在同一個畫面掌握颱風動態。圖片每 10 分鐘自動更新一次。</p>
+  <div class="clock"><span data-i18n="clockLabel">現在時間：</span><b id="now">—</b>　<span data-i18n="clockNote">（頁面內時鐘，僅供對照影像時間戳）</span></div>
 </header>
 
 <main>
 
   <section id="imagery">
     <div class="section-head">
-      <h2>即時衛星 / 雷達影像</h2>
-      <span class="tag">Auto-refresh · 10 min</span>
+      <h2 data-i18n="sec1Heading">即時衛星 / 雷達影像</h2>
+      <span class="tag" data-i18n="sec1Tag">自動更新 · 每 10 分</span>
     </div>
     <div class="grid">
 
       <div class="panel">
         <div class="panel-bar">
-          <span class="name">Himawari 衛星雲圖 · 東亞全景</span>
-          <span class="stamp" id="sat-stamp">載入中…</span>
+          <span class="name" data-i18n="satName">Himawari 衛星雲圖 · 東亞全景</span>
+          <span class="stamp" id="sat-stamp" data-i18n="loading">載入中…</span>
         </div>
         <div class="img-wrap">
-          <img id="sat-img" alt="Himawari 衛星即時雲圖（東亞全景）" referrerpolicy="no-referrer"
+          <img id="sat-img" data-i18n-attr="alt:satAlt" alt="Himawari 衛星即時雲圖（東亞全景）" referrerpolicy="no-referrer"
                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-          <div class="fallback" style="flex-direction:column; gap:8px;">
-            影像目前無法載入。<br>
-            請直接查看：<a href="https://himawari8.nict.go.jp/" target="_blank" rel="noopener">NICT Himawari 即時衛星網站 ↗</a>
+          <div class="fallback">
+            <span data-i18n="satFallbackText">影像目前無法載入。</span>
+            <a href="https://himawari8.nict.go.jp/" target="_blank" rel="noopener" data-i18n="satFallbackLink">NICT Himawari 即時衛星網站 ↗</a>
           </div>
         </div>
       </div>
 
       <div class="panel">
         <div class="panel-bar">
-          <span class="name">雷達回波 · 台灣鄰近區域</span>
-          <span class="stamp" id="radar-stamp">載入中…</span>
+          <span class="name" data-i18n="radarName">雷達回波 · 台灣鄰近區域</span>
+          <span class="stamp" id="radar-stamp" data-i18n="loading">載入中…</span>
         </div>
         <div class="img-wrap">
-          <img id="radar-img" alt="中央氣象署台灣即時雷達回波圖" referrerpolicy="no-referrer"
+          <img id="radar-img" data-i18n-attr="alt:radarAlt" alt="中央氣象署台灣即時雷達回波圖" referrerpolicy="no-referrer"
                src="https://www.cwa.gov.tw/Data/radar/CV1_TW_1000.png"
                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-          <div class="fallback" style="flex-direction:column; gap:8px;">
-            影像目前無法載入（可能為政府網站暫時阻擋跨站讀取）。<br>
-            請直接查看：<a href="https://www.cwa.gov.tw/V8/C/W/OBS_Radar.html" target="_blank" rel="noopener">中央氣象署 雷達回波頁面 ↗</a>
+          <div class="fallback">
+            <span data-i18n="radarFallbackText">影像目前無法載入（可能為政府網站暫時阻擋跨站讀取）。</span>
+            <a href="https://www.cwa.gov.tw/V8/C/W/OBS_Radar.html" target="_blank" rel="noopener" data-i18n="radarFallbackLink">中央氣象署 雷達回波頁面 ↗</a>
           </div>
         </div>
       </div>
 
     </div>
-    <p class="notice">影像來源：日本 NICT／Himawari-8,9 即時衛星（東亞全景，每 10 分鐘更新，延遲約 20–30 分鐘）與交通部中央氣象署開放資料（台灣雷達回波）。若圖片长時間顯示舊時間戳，代表傳輸延遲，並非網頁故障。<button class="refresh-btn" onclick="hardRefresh()" style="margin-left:8px;">立即重新整理影像</button></p>
+    <p class="notice"><span data-i18n="noticeImagery">影像來源：日本 NICT／Himawari-8,9 即時衛星（東亞全景，每 10 分鐘更新，延遲約 20–30 分鐘）與交通部中央氣象署開放資料（台灣雷達回波）。若圖片長時間顯示舊時間戳，代表傳輸延遲，並非網頁故障。</span> <button class="refresh-btn" onclick="hardRefresh()" data-i18n="refreshBtn">立即重新整理影像</button></p>
   </section>
 
   <section id="map">
     <div class="section-head">
-      <h2>互動風暴地圖</h2>
-      <span class="tag">Windy · 西北太平洋</span>
+      <h2 data-i18n="sec2Heading">互動風暴地圖</h2>
+      <span class="tag" data-i18n="sec2Tag">Windy · 西北太平洋</span>
     </div>
     <div class="panel map-panel">
       <iframe
         src="https://embed.windy.com/embed2.html?lat=20.5&lon=130.0&detailLat=23.7&detailLon=121.0&width=650&height=450&zoom=4&level=surface&overlay=satellite&product=ecmwf&menu=&message=true&marker=&calendar=now&pressure=true&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1"
-        title="Windy 即時風暴與衛星地圖">
+        data-i18n-attr="title:mapIframeTitle" title="Windy 即時風暴與衛星地圖">
       </iframe>
     </div>
-    <p class="notice">可在地圖左側切換圖層（衛星雲圖 / 風場 / 氣壓 / 雷達），並用滑鼠拖曳、滾輪縮放來追蹤颱風路徑與周邊天氣系統。</p>
+    <p class="notice" data-i18n="noticeMap">可在地圖左側切換圖層（衛星雲圖 / 風場 / 氣壓 / 雷達），並用滑鼠拖曳、滾輪縮放來追蹤颱風路徑與周邊天氣系統。</p>
   </section>
 
   <section id="links">
     <div class="section-head">
-      <h2>官方颱風警報與路徑圖</h2>
-      <span class="tag">Authoritative Sources</span>
+      <h2 data-i18n="sec3Heading">官方颱風警報與路徑圖</h2>
+      <span class="tag" data-i18n="sec3Tag">權威資料來源</span>
     </div>
     <div class="bulletin">
       <a href="https://www.cwa.gov.tw/V8/C/W/Typhoon/Typhoon.html" target="_blank" rel="noopener">
         <div>
-          <div class="l-name">中央氣象署 颱風消息</div>
-          <div class="l-desc">最新颱風警報、路徑潛勢圖、暴風圈預測 — 台灣官方權威來源</div>
+          <div class="l-name" data-i18n="link1Name">中央氣象署 颱風消息</div>
+          <div class="l-desc" data-i18n="link1Desc">最新颱風警報、路徑潛勢圖、暴風圈預測 — 台灣官方權威來源</div>
         </div>
-        <div class="l-go">前往 ↗</div>
+        <div class="l-go" data-i18n="goLabel">前往 ↗</div>
       </a>
       <a href="https://satimage.cwa.gov.tw/SPD/home" target="_blank" rel="noopener">
         <div>
-          <div class="l-name">衛星產品展示平台</div>
-          <div class="l-desc">中央氣象署互動式衛星影像瀏覽，可切換頻道、時間與縮放</div>
+          <div class="l-name" data-i18n="link2Name">衛星產品展示平台</div>
+          <div class="l-desc" data-i18n="link2Desc">中央氣象署互動式衛星影像瀏覽，可切換頻道、時間與縮放</div>
         </div>
-        <div class="l-go">前往 ↗</div>
+        <div class="l-go" data-i18n="goLabel">前往 ↗</div>
       </a>
       <a href="https://zoom.earth/storms/" target="_blank" rel="noopener">
         <div>
-          <div class="l-name">Zoom Earth 全球風暴追蹤</div>
-          <div class="l-desc">整合 NOAA / JMA / EUMETSAT 衛星影像的全球即時風暴地圖</div>
+          <div class="l-name" data-i18n="link3Name">Zoom Earth 全球風暴追蹤</div>
+          <div class="l-desc" data-i18n="link3Desc">整合 NOAA / JMA / EUMETSAT 衛星影像的全球即時風暴地圖</div>
         </div>
-        <div class="l-go">前往 ↗</div>
+        <div class="l-go" data-i18n="goLabel">前往 ↗</div>
       </a>
       <a href="https://www.jma.go.jp/bosai/map.html#5/26/135/&elem=typhoon&contents=typhoon" target="_blank" rel="noopener">
         <div>
-          <div class="l-name">日本氣象廳（JMA）颱風資訊</div>
-          <div class="l-desc">日方觀測與預報路徑，適合交叉比對台灣官方資料</div>
+          <div class="l-name" data-i18n="link4Name">日本氣象廳（JMA）颱風資訊</div>
+          <div class="l-desc" data-i18n="link4Desc">日方觀測與預報路徑，適合交叉比對台灣官方資料</div>
         </div>
-        <div class="l-go">前往 ↗</div>
+        <div class="l-go" data-i18n="goLabel">前往 ↗</div>
       </a>
       <a href="https://www.metoc.navy.mil/jtwc/jtwc.html" target="_blank" rel="noopener">
         <div>
-          <div class="l-name">美國聯合颱風警報中心（JTWC）</div>
-          <div class="l-desc">西北太平洋熱帶氣旋警報與強度預估，英文資料</div>
+          <div class="l-name" data-i18n="link5Name">美國聯合颱風警報中心（JTWC）</div>
+          <div class="l-desc" data-i18n="link5Desc">西北太平洋熱帶氣旋警報與強度預估，英文資料</div>
         </div>
-        <div class="l-go">前往 ↗</div>
+        <div class="l-go" data-i18n="goLabel">前往 ↗</div>
       </a>
     </div>
   </section>
@@ -308,11 +351,210 @@
 </main>
 
 <footer>
-  資料來源：日本 NICT Himawari-8,9 即時衛星（東亞全景）、交通部中央氣象署開放資料平台（雷達回波，約每 10 分鐘更新）、Windy.com 互動地圖嵌入。<br>
-  本頁僅整合公開即時影像，非官方發布管道；防災決策請以 <a href="https://www.cwa.gov.tw/V8/C/W/Typhoon/Typhoon.html" target="_blank" rel="noopener">中央氣象署官方颱風警報</a> 為準。
+  <span data-i18n="footerLine1">資料來源：日本 NICT Himawari-8,9 即時衛星（東亞全景）、交通部中央氣象署開放資料平台（雷達回波，約每 10 分鐘更新）、Windy.com 互動地圖嵌入。</span><br>
+  <span data-i18n="footerLine2Pre">本頁僅整合公開即時影像，非官方發布管道；防災決策請以 </span><a href="https://www.cwa.gov.tw/V8/C/W/Typhoon/Typhoon.html" target="_blank" rel="noopener" data-i18n="footerLink">中央氣象署官方颱風警報</a><span data-i18n="footerLine2Post"> 為準。</span>
 </footer>
 
 <script>
+  /* ================= I18N ================= */
+  const I18N = {
+    "zh-Hant": {
+      title: "颱風動態即時影像站",
+      eyebrow: "即時觀測 · 中央氣象署 / Himawari 衛星",
+      h1: "颱風動態<br>即時影像站",
+      sub: "彙整最新衛星雲圖、雷達回波，以及 Windy 互動風暴地圖，讓你在同一個畫面掌握颱風動態。圖片每 10 分鐘自動更新一次。",
+      clockLabel: "現在時間：",
+      clockNote: "（頁面內時鐘，僅供對照影像時間戳）",
+      sec1Heading: "即時衛星 / 雷達影像",
+      sec1Tag: "自動更新 · 每 10 分",
+      satName: "Himawari 衛星雲圖 · 東亞全景",
+      satAlt: "Himawari 衛星即時雲圖（東亞全景）",
+      satFallbackText: "影像目前無法載入。",
+      satFallbackLink: "NICT Himawari 即時衛星網站 ↗",
+      radarName: "雷達回波 · 台灣鄰近區域",
+      radarAlt: "中央氣象署台灣即時雷達回波圖",
+      radarFallbackText: "影像目前無法載入（可能為政府網站暫時阻擋跨站讀取）。",
+      radarFallbackLink: "中央氣象署 雷達回波頁面 ↗",
+      loading: "載入中…",
+      stampUpdated: "更新於 {time}",
+      noticeImagery: "影像來源：日本 NICT／Himawari-8,9 即時衛星（東亞全景，每 10 分鐘更新，延遲約 20–30 分鐘）與交通部中央氣象署開放資料（台灣雷達回波）。若圖片長時間顯示舊時間戳，代表傳輸延遲，並非網頁故障。",
+      refreshBtn: "立即重新整理影像",
+      sec2Heading: "互動風暴地圖",
+      sec2Tag: "Windy · 西北太平洋",
+      mapIframeTitle: "Windy 即時風暴與衛星地圖",
+      noticeMap: "可在地圖左側切換圖層（衛星雲圖 / 風場 / 氣壓 / 雷達），並用滑鼠拖曳、滾輪縮放來追蹤颱風路徑與周邊天氣系統。",
+      sec3Heading: "官方颱風警報與路徑圖",
+      sec3Tag: "權威資料來源",
+      link1Name: "中央氣象署 颱風消息", link1Desc: "最新颱風警報、路徑潛勢圖、暴風圈預測 — 台灣官方權威來源",
+      link2Name: "衛星產品展示平台", link2Desc: "中央氣象署互動式衛星影像瀏覽，可切換頻道、時間與縮放",
+      link3Name: "Zoom Earth 全球風暴追蹤", link3Desc: "整合 NOAA / JMA / EUMETSAT 衛星影像的全球即時風暴地圖",
+      link4Name: "日本氣象廳（JMA）颱風資訊", link4Desc: "日方觀測與預報路徑，適合交叉比對台灣官方資料",
+      link5Name: "美國聯合颱風警報中心（JTWC）", link5Desc: "西北太平洋熱帶氣旋警報與強度預估，英文資料",
+      goLabel: "前往 ↗",
+      footerLine1: "資料來源：日本 NICT Himawari-8,9 即時衛星（東亞全景）、交通部中央氣象署開放資料平台（雷達回波，約每 10 分鐘更新）、Windy.com 互動地圖嵌入。",
+      footerLine2Pre: "本頁僅整合公開即時影像，非官方發布管道；防災決策請以 ",
+      footerLink: "中央氣象署官方颱風警報",
+      footerLine2Post: " 為準。"
+    },
+    "zh-Hans": {
+      title: "台风动态实时影像站",
+      eyebrow: "实时观测 · 中央气象署 / Himawari 卫星",
+      h1: "台风动态<br>实时影像站",
+      sub: "汇整最新卫星云图、雷达回波，以及 Windy 互动风暴地图，让你在同一个画面掌握台风动态。图片每 10 分钟自动更新一次。",
+      clockLabel: "当前时间：",
+      clockNote: "（页面内时钟，仅供对照影像时间戳）",
+      sec1Heading: "实时卫星 / 雷达影像",
+      sec1Tag: "自动更新 · 每 10 分",
+      satName: "Himawari 卫星云图 · 东亚全景",
+      satAlt: "Himawari 卫星实时云图（东亚全景）",
+      satFallbackText: "影像目前无法加载。",
+      satFallbackLink: "NICT Himawari 实时卫星网站 ↗",
+      radarName: "雷达回波 · 台湾邻近区域",
+      radarAlt: "中央气象署台湾实时雷达回波图",
+      radarFallbackText: "影像目前无法加载（可能是政府网站暂时阻挡跨站读取）。",
+      radarFallbackLink: "中央气象署 雷达回波页面 ↗",
+      loading: "加载中…",
+      stampUpdated: "更新于 {time}",
+      noticeImagery: "影像来源：日本 NICT／Himawari-8,9 实时卫星（东亚全景，每 10 分钟更新，延迟约 20–30 分钟）与台湾交通部中央气象署开放数据（台湾雷达回波）。若图片长时间显示旧时间戳，代表传输延迟，并非网页故障。",
+      refreshBtn: "立即刷新影像",
+      sec2Heading: "互动风暴地图",
+      sec2Tag: "Windy · 西北太平洋",
+      mapIframeTitle: "Windy 实时风暴与卫星地图",
+      noticeMap: "可在地图左侧切换图层（卫星云图 / 风场 / 气压 / 雷达），并用鼠标拖动、滚轮缩放来追踪台风路径与周边天气系统。",
+      sec3Heading: "官方台风警报与路径图",
+      sec3Tag: "权威数据来源",
+      link1Name: "中央气象署 台风消息", link1Desc: "最新台风警报、路径潜势图、暴风圈预测 — 台湾官方权威来源",
+      link2Name: "卫星产品展示平台", link2Desc: "中央气象署互动式卫星影像浏览，可切换频道、时间与缩放",
+      link3Name: "Zoom Earth 全球风暴追踪", link3Desc: "整合 NOAA / JMA / EUMETSAT 卫星影像的全球实时风暴地图",
+      link4Name: "日本气象厅（JMA）台风信息", link4Desc: "日方观测与预报路径，适合与台湾官方数据交叉比对",
+      link5Name: "美国联合台风警报中心（JTWC）", link5Desc: "西北太平洋热带气旋警报与强度预估，英文资料",
+      goLabel: "前往 ↗",
+      footerLine1: "数据来源：日本 NICT Himawari-8,9 实时卫星（东亚全景）、台湾交通部中央气象署开放数据平台（雷达回波，约每 10 分钟更新）、Windy.com 互动地图嵌入。",
+      footerLine2Pre: "本页仅整合公开实时影像，非官方发布渠道；防灾决策请以 ",
+      footerLink: "中央气象署官方台风警报",
+      footerLine2Post: " 为准。"
+    },
+    "en": {
+      title: "Live Typhoon Tracker",
+      eyebrow: "Live observation · CWA / Himawari satellite",
+      h1: "Live Typhoon<br>Tracker",
+      sub: "Real-time satellite imagery, radar reflectivity, and an interactive Windy storm map, all in one place. Images refresh automatically every 10 minutes.",
+      clockLabel: "Local time: ",
+      clockNote: "(on-page clock, for comparison with image timestamps only)",
+      sec1Heading: "Live satellite / radar imagery",
+      sec1Tag: "Auto-refresh · every 10 min",
+      satName: "Himawari satellite · East Asia full disk",
+      satAlt: "Himawari live satellite image (East Asia full disk)",
+      satFallbackText: "This image failed to load right now.",
+      satFallbackLink: "Open NICT Himawari live site ↗",
+      radarName: "Radar reflectivity · Taiwan vicinity",
+      radarAlt: "CWA Taiwan live radar reflectivity image",
+      radarFallbackText: "This image failed to load (the government site may be temporarily blocking cross-site loading).",
+      radarFallbackLink: "Open CWA radar page ↗",
+      loading: "Loading…",
+      stampUpdated: "Updated {time}",
+      noticeImagery: "Sources: Japan NICT / Himawari-8,9 real-time satellite (East Asia full disk, updated every 10 min, ~20–30 min latency) and Taiwan CWA open data (radar). If the timestamp looks stale for a while, that's transmission delay, not a broken page.",
+      refreshBtn: "Refresh images now",
+      sec2Heading: "Interactive storm map",
+      sec2Tag: "Windy · Northwest Pacific",
+      mapIframeTitle: "Windy live storm and satellite map",
+      noticeMap: "Switch layers on the left of the map (satellite / wind / pressure / radar), and drag or scroll to zoom and follow the typhoon's track and surrounding weather.",
+      sec3Heading: "Official typhoon warnings & track maps",
+      sec3Tag: "Authoritative sources",
+      link1Name: "CWA Typhoon Information", link1Desc: "Taiwan's official typhoon warnings, potential track cones, and storm-circle forecasts",
+      link2Name: "CWA Satellite Product Platform", link2Desc: "Interactive satellite imagery viewer with switchable channels, time and zoom",
+      link3Name: "Zoom Earth Storm Tracker", link3Desc: "Global real-time storm map combining NOAA / JMA / EUMETSAT satellite imagery",
+      link4Name: "Japan Meteorological Agency (JMA)", link4Desc: "Japan's own observations and forecast track, useful for cross-checking Taiwan's official data",
+      link5Name: "US Joint Typhoon Warning Center (JTWC)", link5Desc: "Northwest Pacific tropical cyclone warnings and intensity estimates, in English",
+      goLabel: "Open ↗",
+      footerLine1: "Sources: Japan NICT Himawari-8,9 real-time satellite (East Asia full disk), Taiwan CWA open data platform (radar, updated roughly every 10 min), Windy.com interactive map embed.",
+      footerLine2Pre: "This page only aggregates public real-time imagery and is not an official alert channel; for safety decisions, always defer to ",
+      footerLink: "CWA's official typhoon warnings",
+      footerLine2Post: "."
+    },
+    "ja": {
+      title: "台風ライブ観測サイト",
+      eyebrow: "リアルタイム観測 · 台湾気象署 / ひまわり衛星",
+      h1: "台風の動き<br>ライブ観測",
+      sub: "最新の衛星雲画像、レーダー反射強度、そしてWindyのインタラクティブなストームマップを一画面にまとめました。画像は10分ごとに自動更新されます。",
+      clockLabel: "現在時刻：",
+      clockNote: "（ページ内時計。画像のタイムスタンプ比較用です）",
+      sec1Heading: "リアルタイム衛星 / レーダー画像",
+      sec1Tag: "自動更新 · 10分ごと",
+      satName: "ひまわり衛星雲画像 · 東アジア全域",
+      satAlt: "ひまわり衛星のリアルタイム雲画像（東アジア全域）",
+      satFallbackText: "現在この画像を読み込めません。",
+      satFallbackLink: "NICT ひまわりリアルタイムサイトを開く ↗",
+      radarName: "レーダー反射強度 · 台湾周辺",
+      radarAlt: "台湾気象署のリアルタイムレーダー画像",
+      radarFallbackText: "画像を読み込めません（政府サイトが一時的にクロスサイト読み込みを制限している可能性があります）。",
+      radarFallbackLink: "気象署のレーダーページを開く ↗",
+      loading: "読み込み中…",
+      stampUpdated: "更新：{time}",
+      noticeImagery: "データ提供：日本NICT／ひまわり8・9号 リアルタイム衛星（東アジア全域、10分ごと更新、遅延約20〜30分）および台湾交通部中央気象署オープンデータ（台湾レーダー）。表示が長時間更新されない場合は伝送遅延によるもので、ページの不具合ではありません。",
+      refreshBtn: "今すぐ画像を更新",
+      sec2Heading: "インタラクティブ・ストームマップ",
+      sec2Tag: "Windy · 北西太平洋",
+      mapIframeTitle: "Windy リアルタイムストーム・衛星マップ",
+      noticeMap: "地図左側でレイヤー（衛星雲画像／風／気圧／レーダー）を切り替えられます。ドラッグやスクロールで拡大縮小し、台風の進路や周辺の天気系を追跡できます。",
+      sec3Heading: "公式の台風警報と進路図",
+      sec3Tag: "信頼できる情報源",
+      link1Name: "気象署 台風情報", link1Desc: "台湾公式の台風警報、進路予想円、暴風域予測",
+      link2Name: "衛星プロダクト表示プラットフォーム", link2Desc: "チャンネル・時間・ズームを切り替えられる気象署のインタラクティブ衛星画像ビューア",
+      link3Name: "Zoom Earth グローバルストームトラッカー", link3Desc: "NOAA／JMA／EUMETSATの衛星画像を統合したグローバルなリアルタイムストームマップ",
+      link4Name: "日本気象庁（JMA）台風情報", link4Desc: "日本側の観測・予報進路。台湾の公式データとの比較に便利",
+      link5Name: "米海軍合同台風警報センター（JTWC）", link5Desc: "北西太平洋の熱帯低気圧警報と強度予測（英語）",
+      goLabel: "開く ↗",
+      footerLine1: "データ提供：日本NICT ひまわり8・9号 リアルタイム衛星（東アジア全域）、台湾交通部中央気象署オープンデータプラットフォーム（レーダー、約10分ごと更新）、Windy.com インタラクティブマップ埋め込み。",
+      footerLine2Pre: "このページは公開されているリアルタイム画像を集約したものであり、公式の発表チャンネルではありません。防災に関する判断は必ず",
+      footerLink: "気象署の公式台風警報",
+      footerLine2Post: "を確認してください。"
+    }
+  };
+
+  let currentLang = "zh-Hant";
+
+  function applyLang(lang){
+    const dict = I18N[lang] || I18N["zh-Hant"];
+    currentLang = lang;
+    document.documentElement.setAttribute('lang', lang === 'zh-Hans' ? 'zh-Hans' : lang);
+    document.title = dict.title;
+
+    document.querySelectorAll('[data-i18n]').forEach(function(el){
+      const key = el.getAttribute('data-i18n');
+      if (!(key in dict)) return;
+      if (el.hasAttribute('data-i18n-html')) {
+        el.innerHTML = dict[key];
+      } else {
+        el.textContent = dict[key];
+      }
+    });
+
+    document.querySelectorAll('[data-i18n-attr]').forEach(function(el){
+      const spec = el.getAttribute('data-i18n-attr'); // "attr:key"
+      const [attr, key] = spec.split(':');
+      if (key in dict) el.setAttribute(attr, dict[key]);
+    });
+
+    document.querySelectorAll('[data-lang-btn]').forEach(function(btn){
+      btn.setAttribute('aria-pressed', btn.getAttribute('data-lang-btn') === lang ? 'true' : 'false');
+    });
+
+    stampNow('sat-stamp');
+    stampNow('radar-stamp');
+  }
+
+  function setLang(lang){ applyLang(lang); }
+
+  function detectInitialLang(){
+    const nav = (navigator.language || navigator.userLanguage || 'zh-TW').toLowerCase();
+    if (nav.startsWith('en')) return 'en';
+    if (nav.startsWith('ja')) return 'ja';
+    if (nav.includes('hans') || nav === 'zh-cn' || nav === 'zh-sg') return 'zh-Hans';
+    return 'zh-Hant';
+  }
+
+  /* ================= CLOCK / IMAGES ================= */
   function pad(n){ return n.toString().padStart(2,'0'); }
   function updateClock(){
     const d = new Date();
@@ -324,7 +566,9 @@
 
   function stampNow(id){
     const d = new Date();
-    document.getElementById(id).textContent = '更新於 ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    const timeStr = pad(d.getHours()) + ':' + pad(d.getMinutes());
+    const dict = I18N[currentLang] || I18N["zh-Hant"];
+    document.getElementById(id).textContent = (dict.stampUpdated || 'Updated {time}').replace('{time}', timeStr);
   }
 
   function himawariUrl(){
@@ -353,6 +597,7 @@
   }
   function hardRefresh(){ refreshImages(); }
 
+  applyLang(detectInitialLang());
   refreshImages();
   setInterval(refreshImages, 10 * 60 * 1000); // every 10 minutes
 </script>
