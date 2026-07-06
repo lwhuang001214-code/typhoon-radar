@@ -234,6 +234,83 @@
     border:1px solid var(--panel-line); border-radius:5px;
     padding:8px 10px;
   }
+
+  /* ---------- SEARCH CARD (redesigned city/country search) ---------- */
+  .search-card{
+    background:var(--panel);
+    border:1px solid var(--panel-line);
+    border-radius:12px;
+    padding:16px 16px 14px;
+    margin-bottom:16px;
+  }
+  .search-wrap{ position:relative; flex:1; min-width:240px; }
+  .search-shell{
+    display:flex; align-items:center; gap:6px;
+    background:#0b1219; border:1px solid var(--panel-line); border-radius:10px;
+    padding:0 6px 0 13px;
+    transition:border-color .16s ease, box-shadow .16s ease;
+  }
+  .search-shell:focus-within{
+    border-color:var(--sweep);
+    box-shadow:0 0 0 3px var(--sweep-dim);
+  }
+  .search-shell .search-ico{ flex:none; font-size:13px; color:var(--muted); }
+  .search-shell input{
+    flex:1; min-width:0; background:transparent; border:0; outline:0;
+    color:var(--text); font-family:var(--body); font-size:14px;
+    padding:11px 4px; -webkit-appearance:none;
+  }
+  .search-shell input::placeholder{ color:var(--muted); }
+  .search-clear{
+    flex:none; width:22px; height:22px; border-radius:50%; border:0;
+    background:var(--panel-line); color:var(--muted); font-size:13px; line-height:1;
+    cursor:pointer; display:none; align-items:center; justify-content:center;
+  }
+  .search-clear.show{ display:flex; }
+  .search-clear:hover{ background:#26323e; color:var(--text); }
+
+  .suggest-panel{
+    position:absolute; left:0; right:0; top:calc(100% + 8px);
+    background:#0c141c; border:1px solid var(--panel-line); border-radius:10px;
+    box-shadow:0 18px 44px rgba(0,0,0,0.5);
+    max-height:min(420px, 60vh); overflow-y:auto;
+    z-index:60;
+    opacity:0; transform:translateY(-6px); pointer-events:none;
+    transition:opacity .14s ease, transform .14s ease;
+  }
+  .suggest-panel.open{ opacity:1; transform:translateY(0); pointer-events:auto; }
+  .suggest-panel::-webkit-scrollbar{ width:7px; }
+  .suggest-panel::-webkit-scrollbar-thumb{ background:var(--panel-line); border-radius:4px; }
+
+  .suggest-section-label{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--sweep); padding:11px 14px 5px;
+  }
+  .chip-row{ display:flex; flex-wrap:wrap; gap:8px; padding:0 14px 12px; }
+  .chip{
+    font-family:var(--body); font-size:12.5px; color:var(--text);
+    background:var(--panel); border:1px solid var(--panel-line); border-radius:20px;
+    padding:6px 13px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+    transition:border-color .14s, color .14s, background .14s;
+  }
+  .chip:hover, .chip.active{ border-color:var(--sweep); color:var(--sweep); background:var(--sweep-dim); }
+
+  .suggest-item{
+    display:flex; align-items:center; gap:11px;
+    padding:10px 14px; cursor:pointer; border-top:1px solid var(--panel-line);
+  }
+  .suggest-list .suggest-item:first-child{ border-top:none; }
+  .suggest-item:hover, .suggest-item.active{ background:#131d28; }
+  .suggest-item .si-ico{ flex:none; font-size:16px; }
+  .suggest-item .si-body{ min-width:0; flex:1; }
+  .suggest-item .si-name{ font-size:13.5px; color:var(--text); font-weight:600; }
+  .suggest-item .si-meta{
+    font-size:11.5px; color:var(--muted); margin-top:1px; font-family:var(--mono);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .suggest-empty{
+    padding:18px 14px; font-family:var(--mono); font-size:12px; color:var(--muted); text-align:center;
+  }
   .apikey-row{
     display:flex; align-items:center; gap:8px; flex-wrap:wrap;
     margin-bottom:18px; padding:12px 14px;
@@ -290,6 +367,8 @@
     main{padding:32px 16px 60px;}
     .section-head h2{font-size:19px;}
     .bulletin a{padding:14px;}
+    .search-wrap{ min-width:100%; }
+    .search-card{ padding:14px 12px 12px; }
   }
 </style>
 </head>
@@ -365,15 +444,24 @@
       </div>
     </div>
 
-    <div class="locate-row">
-      <button class="locate-btn" id="locate-btn" onclick="locateAndForecast()">📍 <span data-i18n="gpsBtnLabel">使用 GPS 定位天氣</span></button>
-      <input type="text" id="city-input" class="county-select" list="city-suggestions"
-             data-i18n-attr="placeholder:citySearchPlaceholder" placeholder="輸入城市名稱，例如：Tokyo、台北、Paris…"
-             onkeydown="if(event.key==='Enter'){event.preventDefault(); searchCityForecast();}"
-             oninput="onCityInput(event)">
-      <datalist id="city-suggestions"></datalist>
-      <button class="apikey-save" onclick="searchCityForecast()" data-i18n="citySearchBtn">搜尋</button>
-      <span class="locate-status" id="locate-status"></span>
+    <div class="search-card">
+      <div class="locate-row" style="margin-bottom:0;">
+        <button class="locate-btn" id="locate-btn" onclick="locateAndForecast()">📍 <span data-i18n="gpsBtnLabel">使用 GPS 定位天氣</span></button>
+        <div class="search-wrap" id="search-wrap">
+          <div class="search-shell">
+            <span class="search-ico">🔍</span>
+            <input type="text" id="city-input" autocomplete="off" spellcheck="false"
+                   data-i18n-attr="placeholder:citySearchPlaceholder" placeholder="輸入城市或國家名稱，例如：台灣、日本、Tokyo…"
+                   onkeydown="onCityKeydown(event)"
+                   oninput="onCityInput(event)"
+                   onfocus="onCityInput(event)">
+            <button type="button" class="search-clear" id="search-clear" onclick="clearCitySearch()" aria-label="Clear">✕</button>
+          </div>
+          <div class="suggest-panel" id="suggest-panel"></div>
+        </div>
+        <button class="apikey-save" onclick="searchCityForecast()" data-i18n="citySearchBtn">搜尋</button>
+        <span class="locate-status" id="locate-status"></span>
+      </div>
     </div>
 
     <div class="forecast-days" id="forecast-days">
@@ -499,8 +587,10 @@
       gpsDenied: "無法取得定位權限，請改用下方輸入框搜尋城市。",
       gpsUnsupported: "此瀏覽器不支援定位功能，請改用下方輸入框搜尋城市。",
       gpsNoMatch: "找不到這個地點，請換個名稱再試一次（例如加上國家名）。",
-      citySearchPlaceholder: "輸入城市名稱，例如：Tokyo、台北、Paris…",
+      citySearchPlaceholder: "輸入城市或國家名稱，例如：台灣、日本、Tokyo…",
       citySearchBtn: "搜尋",
+      quickCitiesLabel: "熱門城市",
+      cityResultsLabel: "符合的地點",
       countySelectPlaceholder: "或手動選擇縣市…",
       forecastEmpty: "按上方按鈕定位，或輸入任何城市名稱，即可顯示未來幾天天氣預報。",
       forecastLoading: "天氣預報載入中…",
@@ -557,8 +647,10 @@
       gpsDenied: "无法取得定位权限，请改用下方输入框搜索城市。",
       gpsUnsupported: "此浏览器不支持定位功能，请改用下方输入框搜索城市。",
       gpsNoMatch: "找不到这个地点，请换个名称再试一次（例如加上国家名）。",
-      citySearchPlaceholder: "输入城市名称，例如：Tokyo、台北、Paris…",
+      citySearchPlaceholder: "输入城市或国家名称，例如：台湾、日本、Tokyo…",
       citySearchBtn: "搜索",
+      quickCitiesLabel: "热门城市",
+      cityResultsLabel: "符合的地点",
       countySelectPlaceholder: "或手动选择县市…",
       forecastEmpty: "按上方按钮定位，或输入任何城市名称，即可显示未来几天天气预报。",
       forecastLoading: "天气预报加载中…",
@@ -615,8 +707,10 @@
       gpsDenied: "Location permission denied. Search for a city below instead.",
       gpsUnsupported: "This browser doesn't support geolocation. Search for a city below instead.",
       gpsNoMatch: "Couldn't find that place. Try a different name (adding the country helps).",
-      citySearchPlaceholder: "Type a city name, e.g. Tokyo, Taipei, Paris…",
+      citySearchPlaceholder: "Type a city or country, e.g. Taiwan, Japan, Tokyo…",
       citySearchBtn: "Search",
+      quickCitiesLabel: "Popular cities",
+      cityResultsLabel: "Matching places",
       countySelectPlaceholder: "Or choose a county manually…",
       forecastEmpty: "Tap the button to locate yourself, or type any city name, to see the multi-day forecast.",
       forecastLoading: "Loading forecast…",
@@ -673,8 +767,10 @@
       gpsDenied: "位置情報の権限が得られませんでした。下の欄で都市名を検索してください。",
       gpsUnsupported: "このブラウザは位置情報に対応していません。下の欄で都市名を検索してください。",
       gpsNoMatch: "その場所が見つかりませんでした。別の名前（国名を添えるなど）で試してください。",
-      citySearchPlaceholder: "都市名を入力（例：Tokyo、台北、Paris…）",
+      citySearchPlaceholder: "都市名または国名を入力（例：台湾、日本、Tokyo…）",
       citySearchBtn: "検索",
+      quickCitiesLabel: "主要都市",
+      cityResultsLabel: "該当する場所",
       countySelectPlaceholder: "または手動で県市を選択…",
       forecastEmpty: "上のボタンで位置を取得するか、都市名を入力すると今後数日の天気予報が表示されます。",
       forecastLoading: "天気予報を読み込み中…",
@@ -789,6 +885,259 @@
     return map[lang] || 'en';
   }
 
+  /* ================= COUNTRY -> MAJOR CITIES DATABASE =================
+     Lets someone type a country name (in zh-Hant / zh-Hans / en / ja) and
+     immediately get a pick-list of that country's major cities, instead of
+     depending entirely on the open geocoding API (which indexes cities, not
+     countries, so a bare country name like "台灣" often returns nothing). */
+  const COUNTRY_DB = [
+    { code:'TW', flag:'🇹🇼', alias:['台灣','臺灣','台湾','taiwan','中華民國','中华民国'],
+      name:{'zh-Hant':'台灣','zh-Hans':'台湾','en':'Taiwan','ja':'台湾'},
+      cities:[
+        {n:{'zh-Hant':'台北','zh-Hans':'台北','en':'Taipei','ja':'台北'}, lat:25.0375, lon:121.5637},
+        {n:{'zh-Hant':'高雄','zh-Hans':'高雄','en':'Kaohsiung','ja':'高雄'}, lat:22.6273, lon:120.3014},
+        {n:{'zh-Hant':'台中','zh-Hans':'台中','en':'Taichung','ja':'台中'}, lat:24.1477, lon:120.6736},
+        {n:{'zh-Hant':'台南','zh-Hans':'台南','en':'Tainan','ja':'台南'}, lat:22.9997, lon:120.2270},
+        {n:{'zh-Hant':'新竹','zh-Hans':'新竹','en':'Hsinchu','ja':'新竹'}, lat:24.8138, lon:120.9675},
+        {n:{'zh-Hant':'花蓮','zh-Hans':'花莲','en':'Hualien','ja':'花蓮'}, lat:23.9871, lon:121.6015},
+        {n:{'zh-Hant':'基隆','zh-Hans':'基隆','en':'Keelung','ja':'基隆'}, lat:25.1276, lon:121.7392},
+        {n:{'zh-Hant':'屏東','zh-Hans':'屏东','en':'Pingtung','ja':'屏東'}, lat:22.6763, lon:120.4880}
+      ]},
+    { code:'JP', flag:'🇯🇵', alias:['日本','にほん','にっぽん','japan'],
+      name:{'zh-Hant':'日本','zh-Hans':'日本','en':'Japan','ja':'日本'},
+      cities:[
+        {n:{'zh-Hant':'東京','zh-Hans':'东京','en':'Tokyo','ja':'東京'}, lat:35.6762, lon:139.6503},
+        {n:{'zh-Hant':'大阪','zh-Hans':'大阪','en':'Osaka','ja':'大阪'}, lat:34.6937, lon:135.5023},
+        {n:{'zh-Hant':'京都','zh-Hans':'京都','en':'Kyoto','ja':'京都'}, lat:35.0116, lon:135.7681},
+        {n:{'zh-Hant':'名古屋','zh-Hans':'名古屋','en':'Nagoya','ja':'名古屋'}, lat:35.1815, lon:136.9066},
+        {n:{'zh-Hant':'福岡','zh-Hans':'福冈','en':'Fukuoka','ja':'福岡'}, lat:33.5904, lon:130.4017},
+        {n:{'zh-Hant':'札幌','zh-Hans':'札幌','en':'Sapporo','ja':'札幌'}, lat:43.0618, lon:141.3545},
+        {n:{'zh-Hant':'沖繩','zh-Hans':'冲绳','en':'Okinawa','ja':'沖縄'}, lat:26.2124, lon:127.6809},
+        {n:{'zh-Hant':'仙台','zh-Hans':'仙台','en':'Sendai','ja':'仙台'}, lat:38.2682, lon:140.8694}
+      ]},
+    { code:'CN', flag:'🇨🇳', alias:['中國','中国','china','中华人民共和国','中華人民共和國'],
+      name:{'zh-Hant':'中國','zh-Hans':'中国','en':'China','ja':'中国'},
+      cities:[
+        {n:{'zh-Hant':'北京','zh-Hans':'北京','en':'Beijing','ja':'北京'}, lat:39.9042, lon:116.4074},
+        {n:{'zh-Hant':'上海','zh-Hans':'上海','en':'Shanghai','ja':'上海'}, lat:31.2304, lon:121.4737},
+        {n:{'zh-Hant':'廣州','zh-Hans':'广州','en':'Guangzhou','ja':'広州'}, lat:23.1291, lon:113.2644},
+        {n:{'zh-Hant':'深圳','zh-Hans':'深圳','en':'Shenzhen','ja':'深圳'}, lat:22.5431, lon:114.0579},
+        {n:{'zh-Hant':'成都','zh-Hans':'成都','en':'Chengdu','ja':'成都'}, lat:30.5728, lon:104.0668},
+        {n:{'zh-Hant':'杭州','zh-Hans':'杭州','en':'Hangzhou','ja':'杭州'}, lat:30.2741, lon:120.1551},
+        {n:{'zh-Hant':'廈門','zh-Hans':'厦门','en':'Xiamen','ja':'厦門'}, lat:24.4798, lon:118.0894},
+        {n:{'zh-Hant':'重慶','zh-Hans':'重庆','en':'Chongqing','ja':'重慶'}, lat:29.4316, lon:106.9123}
+      ]},
+    { code:'KR', flag:'🇰🇷', alias:['韓國','韩国','南韓','南韩','korea','south korea','대한민국'],
+      name:{'zh-Hant':'韓國','zh-Hans':'韩国','en':'South Korea','ja':'韓国'},
+      cities:[
+        {n:{'zh-Hant':'首爾','zh-Hans':'首尔','en':'Seoul','ja':'ソウル'}, lat:37.5665, lon:126.9780},
+        {n:{'zh-Hant':'釜山','zh-Hans':'釜山','en':'Busan','ja':'釜山'}, lat:35.1796, lon:129.0756},
+        {n:{'zh-Hant':'仁川','zh-Hans':'仁川','en':'Incheon','ja':'仁川'}, lat:37.4563, lon:126.7052},
+        {n:{'zh-Hant':'大邱','zh-Hans':'大邱','en':'Daegu','ja':'大邱'}, lat:35.8714, lon:128.6014},
+        {n:{'zh-Hant':'濟州','zh-Hans':'济州','en':'Jeju','ja':'済州'}, lat:33.4996, lon:126.5312}
+      ]},
+    { code:'HK', flag:'🇭🇰', alias:['香港','hong kong'],
+      name:{'zh-Hant':'香港','zh-Hans':'香港','en':'Hong Kong','ja':'香港'},
+      cities:[
+        {n:{'zh-Hant':'香港島','zh-Hans':'香港岛','en':'Hong Kong Island','ja':'香港島'}, lat:22.2793, lon:114.1628},
+        {n:{'zh-Hant':'九龍','zh-Hans':'九龙','en':'Kowloon','ja':'九龍'}, lat:22.3193, lon:114.1694},
+        {n:{'zh-Hant':'沙田','zh-Hans':'沙田','en':'Sha Tin','ja':'沙田'}, lat:22.3800, lon:114.1628}
+      ]},
+    { code:'MO', flag:'🇲🇴', alias:['澳門','澳门','macau','macao'],
+      name:{'zh-Hant':'澳門','zh-Hans':'澳门','en':'Macau','ja':'マカオ'},
+      cities:[
+        {n:{'zh-Hant':'澳門半島','zh-Hans':'澳门半岛','en':'Macau Peninsula','ja':'マカオ半島'}, lat:22.1987, lon:113.5439},
+        {n:{'zh-Hant':'氹仔','zh-Hans':'氹仔','en':'Taipa','ja':'タイパ'}, lat:22.1495, lon:113.5527}
+      ]},
+    { code:'PH', flag:'🇵🇭', alias:['菲律賓','菲律宾','philippines'],
+      name:{'zh-Hant':'菲律賓','zh-Hans':'菲律宾','en':'Philippines','ja':'フィリピン'},
+      cities:[
+        {n:{'zh-Hant':'馬尼拉','zh-Hans':'马尼拉','en':'Manila'}, lat:14.5995, lon:120.9842},
+        {n:{'zh-Hant':'宿霧','zh-Hans':'宿务','en':'Cebu'}, lat:10.3157, lon:123.8854},
+        {n:{'zh-Hant':'達沃','zh-Hans':'达沃','en':'Davao'}, lat:7.1907, lon:125.4553}
+      ]},
+    { code:'VN', flag:'🇻🇳', alias:['越南','vietnam'],
+      name:{'zh-Hant':'越南','zh-Hans':'越南','en':'Vietnam','ja':'ベトナム'},
+      cities:[
+        {n:{'zh-Hant':'河內','zh-Hans':'河内','en':'Hanoi'}, lat:21.0285, lon:105.8542},
+        {n:{'zh-Hant':'胡志明市','zh-Hans':'胡志明市','en':'Ho Chi Minh City'}, lat:10.8231, lon:106.6297},
+        {n:{'zh-Hant':'峴港','zh-Hans':'岘港','en':'Da Nang'}, lat:16.0544, lon:108.2022}
+      ]},
+    { code:'TH', flag:'🇹🇭', alias:['泰國','泰国','thailand'],
+      name:{'zh-Hant':'泰國','zh-Hans':'泰国','en':'Thailand','ja':'タイ'},
+      cities:[
+        {n:{'zh-Hant':'曼谷','zh-Hans':'曼谷','en':'Bangkok'}, lat:13.7563, lon:100.5018},
+        {n:{'zh-Hant':'清邁','zh-Hans':'清迈','en':'Chiang Mai'}, lat:18.7883, lon:98.9853},
+        {n:{'zh-Hant':'普吉','zh-Hans':'普吉','en':'Phuket'}, lat:7.8804, lon:98.3923}
+      ]},
+    { code:'US', flag:'🇺🇸', alias:['美國','美国','美利堅','america','united states','usa'],
+      name:{'zh-Hant':'美國','zh-Hans':'美国','en':'United States','ja':'アメリカ'},
+      cities:[
+        {n:{'zh-Hant':'紐約','zh-Hans':'纽约','en':'New York'}, lat:40.7128, lon:-74.0060},
+        {n:{'zh-Hant':'洛杉磯','zh-Hans':'洛杉矶','en':'Los Angeles'}, lat:34.0522, lon:-118.2437},
+        {n:{'zh-Hant':'舊金山','zh-Hans':'旧金山','en':'San Francisco'}, lat:37.7749, lon:-122.4194},
+        {n:{'zh-Hant':'芝加哥','zh-Hans':'芝加哥','en':'Chicago'}, lat:41.8781, lon:-87.6298},
+        {n:{'zh-Hant':'西雅圖','zh-Hans':'西雅图','en':'Seattle'}, lat:47.6062, lon:-122.3321},
+        {n:{'zh-Hant':'檀香山','zh-Hans':'檀香山','en':'Honolulu'}, lat:21.3069, lon:-157.8583}
+      ]},
+    { code:'GB', flag:'🇬🇧', alias:['英國','英国','united kingdom','uk','britain'],
+      name:{'zh-Hant':'英國','zh-Hans':'英国','en':'United Kingdom','ja':'イギリス'},
+      cities:[
+        {n:{'zh-Hant':'倫敦','zh-Hans':'伦敦','en':'London'}, lat:51.5074, lon:-0.1278},
+        {n:{'zh-Hant':'曼徹斯特','zh-Hans':'曼彻斯特','en':'Manchester'}, lat:53.4808, lon:-2.2426},
+        {n:{'zh-Hant':'愛丁堡','zh-Hans':'爱丁堡','en':'Edinburgh'}, lat:55.9533, lon:-3.1883}
+      ]},
+    { code:'FR', flag:'🇫🇷', alias:['法國','法国','france'],
+      name:{'zh-Hant':'法國','zh-Hans':'法国','en':'France','ja':'フランス'},
+      cities:[
+        {n:{'zh-Hant':'巴黎','zh-Hans':'巴黎','en':'Paris'}, lat:48.8566, lon:2.3522},
+        {n:{'zh-Hant':'馬賽','zh-Hans':'马赛','en':'Marseille'}, lat:43.2965, lon:5.3698},
+        {n:{'zh-Hant':'尼斯','zh-Hans':'尼斯','en':'Nice'}, lat:43.7102, lon:7.2620}
+      ]},
+    { code:'DE', flag:'🇩🇪', alias:['德國','德国','germany'],
+      name:{'zh-Hant':'德國','zh-Hans':'德国','en':'Germany','ja':'ドイツ'},
+      cities:[
+        {n:{'zh-Hant':'柏林','zh-Hans':'柏林','en':'Berlin'}, lat:52.5200, lon:13.4050},
+        {n:{'zh-Hant':'慕尼黑','zh-Hans':'慕尼黑','en':'Munich'}, lat:48.1351, lon:11.5820},
+        {n:{'zh-Hant':'法蘭克福','zh-Hans':'法兰克福','en':'Frankfurt'}, lat:50.1109, lon:8.6821}
+      ]},
+    { code:'AU', flag:'🇦🇺', alias:['澳洲','澳大利亞','澳大利亚','australia'],
+      name:{'zh-Hant':'澳洲','zh-Hans':'澳大利亚','en':'Australia','ja':'オーストラリア'},
+      cities:[
+        {n:{'zh-Hant':'雪梨','zh-Hans':'悉尼','en':'Sydney'}, lat:-33.8688, lon:151.2093},
+        {n:{'zh-Hant':'墨爾本','zh-Hans':'墨尔本','en':'Melbourne'}, lat:-37.8136, lon:144.9631},
+        {n:{'zh-Hant':'布里斯本','zh-Hans':'布里斯班','en':'Brisbane'}, lat:-27.4698, lon:153.0251},
+        {n:{'zh-Hant':'柏斯','zh-Hans':'珀斯','en':'Perth'}, lat:-31.9505, lon:115.8605}
+      ]},
+    { code:'CA', flag:'🇨🇦', alias:['加拿大','canada'],
+      name:{'zh-Hant':'加拿大','zh-Hans':'加拿大','en':'Canada','ja':'カナダ'},
+      cities:[
+        {n:{'zh-Hant':'多倫多','zh-Hans':'多伦多','en':'Toronto'}, lat:43.6532, lon:-79.3832},
+        {n:{'zh-Hant':'溫哥華','zh-Hans':'温哥华','en':'Vancouver'}, lat:49.2827, lon:-123.1207},
+        {n:{'zh-Hant':'蒙特婁','zh-Hans':'蒙特利尔','en':'Montreal'}, lat:45.5017, lon:-73.5673}
+      ]},
+    { code:'SG', flag:'🇸🇬', alias:['新加坡','singapore'],
+      name:{'zh-Hant':'新加坡','en':'Singapore'},
+      cities:[ {n:{'zh-Hant':'新加坡','en':'Singapore'}, lat:1.3521, lon:103.8198} ]},
+    { code:'MY', flag:'🇲🇾', alias:['馬來西亞','马来西亚','malaysia'],
+      name:{'zh-Hant':'馬來西亞','en':'Malaysia'},
+      cities:[
+        {n:{'zh-Hant':'吉隆坡','en':'Kuala Lumpur'}, lat:3.1390, lon:101.6869},
+        {n:{'zh-Hant':'檳城','en':'Penang'}, lat:5.4141, lon:100.3288},
+        {n:{'zh-Hant':'新山','en':'Johor Bahru'}, lat:1.4927, lon:103.7414}
+      ]},
+    { code:'ID', flag:'🇮🇩', alias:['印尼','印度尼西亞','印度尼西亚','indonesia'],
+      name:{'zh-Hant':'印尼','en':'Indonesia'},
+      cities:[
+        {n:{'zh-Hant':'雅加達','en':'Jakarta'}, lat:-6.2088, lon:106.8456},
+        {n:{'zh-Hant':'峇里島','en':'Bali (Denpasar)'}, lat:-8.6705, lon:115.2126},
+        {n:{'zh-Hant':'泗水','en':'Surabaya'}, lat:-7.2575, lon:112.7521}
+      ]},
+    { code:'IN', flag:'🇮🇳', alias:['印度','india'],
+      name:{'zh-Hant':'印度','en':'India'},
+      cities:[
+        {n:{'zh-Hant':'新德里','en':'New Delhi'}, lat:28.6139, lon:77.2090},
+        {n:{'zh-Hant':'孟買','en':'Mumbai'}, lat:19.0760, lon:72.8777},
+        {n:{'zh-Hant':'邦加羅爾','en':'Bengaluru'}, lat:12.9716, lon:77.5946}
+      ]},
+    { code:'KH', flag:'🇰🇭', alias:['柬埔寨','cambodia'], name:{'zh-Hant':'柬埔寨','en':'Cambodia'},
+      cities:[ {n:{'zh-Hant':'金邊','en':'Phnom Penh'}, lat:11.5564, lon:104.9282}, {n:{'zh-Hant':'暹粒','en':'Siem Reap'}, lat:13.3671, lon:103.8448} ]},
+    { code:'LA', flag:'🇱🇦', alias:['寮國','老撾','老挝','laos'], name:{'zh-Hant':'寮國','en':'Laos'},
+      cities:[ {n:{'zh-Hant':'永珍','en':'Vientiane'}, lat:17.9757, lon:102.6331} ]},
+    { code:'MM', flag:'🇲🇲', alias:['緬甸','缅甸','myanmar'], name:{'zh-Hant':'緬甸','en':'Myanmar'},
+      cities:[ {n:{'zh-Hant':'仰光','en':'Yangon'}, lat:16.8661, lon:96.1951}, {n:{'zh-Hant':'內比都','en':'Naypyidaw'}, lat:19.7633, lon:96.0785} ]},
+    { code:'MN', flag:'🇲🇳', alias:['蒙古','mongolia'], name:{'zh-Hant':'蒙古','en':'Mongolia'},
+      cities:[ {n:{'zh-Hant':'烏蘭巴托','en':'Ulaanbaatar'}, lat:47.8864, lon:106.9057} ]},
+    { code:'NP', flag:'🇳🇵', alias:['尼泊爾','尼泊尔','nepal'], name:{'zh-Hant':'尼泊爾','en':'Nepal'},
+      cities:[ {n:{'zh-Hant':'加德滿都','en':'Kathmandu'}, lat:27.7172, lon:85.3240} ]},
+    { code:'LK', flag:'🇱🇰', alias:['斯里蘭卡','斯里兰卡','sri lanka'], name:{'zh-Hant':'斯里蘭卡','en':'Sri Lanka'},
+      cities:[ {n:{'zh-Hant':'可倫坡','en':'Colombo'}, lat:6.9271, lon:79.8612} ]},
+    { code:'BD', flag:'🇧🇩', alias:['孟加拉','bangladesh'], name:{'zh-Hant':'孟加拉','en':'Bangladesh'},
+      cities:[ {n:{'zh-Hant':'達卡','en':'Dhaka'}, lat:23.8103, lon:90.4125} ]},
+    { code:'PK', flag:'🇵🇰', alias:['巴基斯坦','pakistan'], name:{'zh-Hant':'巴基斯坦','en':'Pakistan'},
+      cities:[ {n:{'zh-Hant':'伊斯蘭馬巴德','en':'Islamabad'}, lat:33.6844, lon:73.0479}, {n:{'zh-Hant':'喀拉蚩','en':'Karachi'}, lat:24.8607, lon:67.0011} ]},
+    { code:'NZ', flag:'🇳🇿', alias:['紐西蘭','新西兰','new zealand'], name:{'zh-Hant':'紐西蘭','en':'New Zealand'},
+      cities:[ {n:{'zh-Hant':'奧克蘭','en':'Auckland'}, lat:-36.8485, lon:174.7633}, {n:{'zh-Hant':'威靈頓','en':'Wellington'}, lat:-41.2865, lon:174.7762} ]},
+    { code:'RU', flag:'🇷🇺', alias:['俄羅斯','俄罗斯','russia'], name:{'zh-Hant':'俄羅斯','en':'Russia'},
+      cities:[ {n:{'zh-Hant':'莫斯科','en':'Moscow'}, lat:55.7558, lon:37.6173}, {n:{'zh-Hant':'聖彼得堡','en':'Saint Petersburg'}, lat:59.9343, lon:30.3351} ]},
+    { code:'IT', flag:'🇮🇹', alias:['義大利','意大利','italy'], name:{'zh-Hant':'義大利','en':'Italy'},
+      cities:[ {n:{'zh-Hant':'羅馬','en':'Rome'}, lat:41.9028, lon:12.4964}, {n:{'zh-Hant':'米蘭','en':'Milan'}, lat:45.4642, lon:9.1900}, {n:{'zh-Hant':'威尼斯','en':'Venice'}, lat:45.4408, lon:12.3155} ]},
+    { code:'ES', flag:'🇪🇸', alias:['西班牙','spain'], name:{'zh-Hant':'西班牙','en':'Spain'},
+      cities:[ {n:{'zh-Hant':'馬德里','en':'Madrid'}, lat:40.4168, lon:-3.7038}, {n:{'zh-Hant':'巴塞隆納','en':'Barcelona'}, lat:41.3874, lon:2.1686} ]},
+    { code:'NL', flag:'🇳🇱', alias:['荷蘭','荷兰','netherlands'], name:{'zh-Hant':'荷蘭','en':'Netherlands'},
+      cities:[ {n:{'zh-Hant':'阿姆斯特丹','en':'Amsterdam'}, lat:52.3676, lon:4.9041} ]},
+    { code:'CH', flag:'🇨🇭', alias:['瑞士','switzerland'], name:{'zh-Hant':'瑞士','en':'Switzerland'},
+      cities:[ {n:{'zh-Hant':'蘇黎世','en':'Zurich'}, lat:47.3769, lon:8.5417}, {n:{'zh-Hant':'日內瓦','en':'Geneva'}, lat:46.2044, lon:6.1432} ]},
+    { code:'SE', flag:'🇸🇪', alias:['瑞典','sweden'], name:{'zh-Hant':'瑞典','en':'Sweden'},
+      cities:[ {n:{'zh-Hant':'斯德哥爾摩','en':'Stockholm'}, lat:59.3293, lon:18.0686} ]},
+    { code:'NO', flag:'🇳🇴', alias:['挪威','norway'], name:{'zh-Hant':'挪威','en':'Norway'},
+      cities:[ {n:{'zh-Hant':'奧斯陸','en':'Oslo'}, lat:59.9139, lon:10.7522} ]},
+    { code:'FI', flag:'🇫🇮', alias:['芬蘭','芬兰','finland'], name:{'zh-Hant':'芬蘭','en':'Finland'},
+      cities:[ {n:{'zh-Hant':'赫爾辛基','en':'Helsinki'}, lat:60.1699, lon:24.9384} ]},
+    { code:'PL', flag:'🇵🇱', alias:['波蘭','波兰','poland'], name:{'zh-Hant':'波蘭','en':'Poland'},
+      cities:[ {n:{'zh-Hant':'華沙','en':'Warsaw'}, lat:52.2297, lon:21.0122} ]},
+    { code:'PT', flag:'🇵🇹', alias:['葡萄牙','portugal'], name:{'zh-Hant':'葡萄牙','en':'Portugal'},
+      cities:[ {n:{'zh-Hant':'里斯本','en':'Lisbon'}, lat:38.7223, lon:-9.1393} ]},
+    { code:'GR', flag:'🇬🇷', alias:['希臘','希腊','greece'], name:{'zh-Hant':'希臘','en':'Greece'},
+      cities:[ {n:{'zh-Hant':'雅典','en':'Athens'}, lat:37.9838, lon:23.7275} ]},
+    { code:'TR', flag:'🇹🇷', alias:['土耳其','turkey'], name:{'zh-Hant':'土耳其','en':'Turkey'},
+      cities:[ {n:{'zh-Hant':'伊斯坦堡','en':'Istanbul'}, lat:41.0082, lon:28.9784}, {n:{'zh-Hant':'安卡拉','en':'Ankara'}, lat:39.9334, lon:32.8597} ]},
+    { code:'IL', flag:'🇮🇱', alias:['以色列','israel'], name:{'zh-Hant':'以色列','en':'Israel'},
+      cities:[ {n:{'zh-Hant':'耶路撒冷','en':'Jerusalem'}, lat:31.7683, lon:35.2137}, {n:{'zh-Hant':'特拉維夫','en':'Tel Aviv'}, lat:32.0853, lon:34.7818} ]},
+    { code:'EG', flag:'🇪🇬', alias:['埃及','egypt'], name:{'zh-Hant':'埃及','en':'Egypt'},
+      cities:[ {n:{'zh-Hant':'開羅','en':'Cairo'}, lat:30.0444, lon:31.2357} ]},
+    { code:'SA', flag:'🇸🇦', alias:['沙烏地阿拉伯','沙特阿拉伯','saudi arabia'], name:{'zh-Hant':'沙烏地阿拉伯','en':'Saudi Arabia'},
+      cities:[ {n:{'zh-Hant':'利雅德','en':'Riyadh'}, lat:24.7136, lon:46.6753}, {n:{'zh-Hant':'吉達','en':'Jeddah'}, lat:21.4858, lon:39.1925} ]},
+    { code:'AE', flag:'🇦🇪', alias:['阿聯','阿拉伯聯合大公國','阿联酋','uae','united arab emirates'], name:{'zh-Hant':'阿聯','en':'United Arab Emirates'},
+      cities:[ {n:{'zh-Hant':'杜拜','en':'Dubai'}, lat:25.2048, lon:55.2708}, {n:{'zh-Hant':'阿布達比','en':'Abu Dhabi'}, lat:24.4539, lon:54.3773} ]},
+    { code:'ZA', flag:'🇿🇦', alias:['南非','south africa'], name:{'zh-Hant':'南非','en':'South Africa'},
+      cities:[ {n:{'zh-Hant':'約翰尼斯堡','en':'Johannesburg'}, lat:-26.2041, lon:28.0473}, {n:{'zh-Hant':'開普敦','en':'Cape Town'}, lat:-33.9249, lon:18.4241} ]},
+    { code:'BR', flag:'🇧🇷', alias:['巴西','brazil'], name:{'zh-Hant':'巴西','en':'Brazil'},
+      cities:[ {n:{'zh-Hant':'聖保羅','en':'Sao Paulo'}, lat:-23.5505, lon:-46.6333}, {n:{'zh-Hant':'里約熱內盧','en':'Rio de Janeiro'}, lat:-22.9068, lon:-43.1729} ]},
+    { code:'MX', flag:'🇲🇽', alias:['墨西哥','mexico'], name:{'zh-Hant':'墨西哥','en':'Mexico'},
+      cities:[ {n:{'zh-Hant':'墨西哥城','en':'Mexico City'}, lat:19.4326, lon:-99.1332} ]},
+    { code:'AR', flag:'🇦🇷', alias:['阿根廷','argentina'], name:{'zh-Hant':'阿根廷','en':'Argentina'},
+      cities:[ {n:{'zh-Hant':'布宜諾斯艾利斯','en':'Buenos Aires'}, lat:-34.6037, lon:-58.3816} ]},
+    { code:'CL', flag:'🇨🇱', alias:['智利','chile'], name:{'zh-Hant':'智利','en':'Chile'},
+      cities:[ {n:{'zh-Hant':'聖地牙哥','en':'Santiago'}, lat:-33.4489, lon:-70.6693} ]}
+  ];
+
+  function normalizeQuery(s){
+    return (s || '').toString().trim().toLowerCase();
+  }
+
+  function getLocal(nameObj, lang){
+    if (!nameObj) return '';
+    return nameObj[lang] || nameObj['zh-Hant'] || nameObj['en'] || Object.values(nameObj)[0] || '';
+  }
+
+  function matchCountry(query){
+    const q = normalizeQuery(query);
+    if (!q) return null;
+    for (const c of COUNTRY_DB){
+      if (c.alias.some(function(a){ return normalizeQuery(a) === q; })) return c;
+    }
+    for (const c of COUNTRY_DB){
+      if (c.alias.some(function(a){
+        const na = normalizeQuery(a);
+        return na.length >= 2 && (na.indexOf(q) !== -1 || q.indexOf(na) !== -1);
+      })) return c;
+    }
+    return null;
+  }
+
+  function detectQueryLang(q){
+    if (/[\u3040-\u30ff]/.test(q)) return 'ja';
+    if (/[\u4e00-\u9fff]/.test(q)) return 'zh';
+    return 'en';
+  }
+
+  function escapeHtml(s){
+    return (s == null ? '' : String(s)).replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  }
+
   const WMO = {
     0:  { icon:'☀️', 'zh-Hant':'晴朗', 'zh-Hans':'晴朗', en:'Clear sky', ja:'快晴' },
     1:  { icon:'🌤️', 'zh-Hant':'晴時多雲', 'zh-Hans':'晴时多云', en:'Mainly clear', ja:'ほぼ晴れ' },
@@ -823,8 +1172,9 @@
   let tempUnit = localStorage.getItem('tempUnit') || (((navigator.language || '').toLowerCase() === 'en-us') ? 'fahrenheit' : 'celsius');
   let lastCoords = null;
   let lastDailyData = null;
-  let geoCache = {};
   let citySearchTimer = null;
+  let currentSuggestions = [];
+  let activeSuggestIndex = -1;
 
   async function refreshForecastLanguage(){
     if (lastDailyData) renderForecast(lastDailyData);
@@ -890,41 +1240,169 @@
     }, { enableHighAccuracy:false, timeout:10000, maximumAge:600000 });
   }
 
-  async function onCityInput(e){
-    const q = e.target.value.trim();
-    if (q.length < 2) return;
-    clearTimeout(citySearchTimer);
-    citySearchTimer = setTimeout(async function(){
-      try {
-        const resp = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=${geocodeLangFor(currentLang)}`);
-        const data = await resp.json();
-        const dl = document.getElementById('city-suggestions');
-        dl.innerHTML = '';
-        geoCache = {};
-        (data.results || []).forEach(function(r){
-          const label = placeLabel(r, ['name', 'admin1', 'country']);
-          geoCache[label] = r;
-          const opt = document.createElement('option');
-          opt.value = label;
-          dl.appendChild(opt);
-        });
-      } catch (e){ /* ignore, user can still press search */ }
-    }, 350);
+  async function fetchGeocode(q, lang){
+    try {
+      const resp = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=${lang}`);
+      const data = await resp.json();
+      return data.results || [];
+    } catch (e){ return []; }
   }
+
+  function closeSuggestPanel(){
+    const panel = document.getElementById('suggest-panel');
+    if (panel) panel.classList.remove('open');
+    activeSuggestIndex = -1;
+  }
+
+  function clearCitySearch(){
+    const input = document.getElementById('city-input');
+    input.value = '';
+    const clearBtn = document.getElementById('search-clear');
+    if (clearBtn) clearBtn.classList.remove('show');
+    currentSuggestions = [];
+    closeSuggestPanel();
+    input.focus();
+  }
+
+  function selectSuggestion(idx){
+    const s = currentSuggestions[idx];
+    if (!s) return;
+    const input = document.getElementById('city-input');
+    input.value = s.label;
+    const clearBtn = document.getElementById('search-clear');
+    if (clearBtn) clearBtn.classList.add('show');
+    closeSuggestPanel();
+    setLocateStatus(s.label, 'ok');
+    fetchForecastByCoords(s.lat, s.lon, s.label);
+  }
+
+  function highlightActiveSuggestion(panel){
+    const items = panel.querySelectorAll('[data-idx]');
+    items.forEach(function(el){
+      const isActive = Number(el.getAttribute('data-idx')) === activeSuggestIndex;
+      el.classList.toggle('active', isActive);
+      if (isActive) el.scrollIntoView({ block:'nearest' });
+    });
+  }
+
+  async function buildSuggestions(q){
+    const country = matchCountry(q);
+    const lang1 = detectQueryLang(q);
+    let cityResults = await fetchGeocode(q, lang1);
+    if (!cityResults.length && lang1 !== 'en'){
+      cityResults = await fetchGeocode(q, 'en');
+    }
+
+    currentSuggestions = [];
+    let html = '';
+
+    if (country){
+      html += `<div class="suggest-section-label">${escapeHtml(country.flag)} ${escapeHtml(getLocal(country.name, currentLang))} · ${escapeHtml(t('quickCitiesLabel'))}</div><div class="chip-row">`;
+      country.cities.forEach(function(city){
+        const idx = currentSuggestions.length;
+        currentSuggestions.push({ label: getLocal(city.n, currentLang), lat: city.lat, lon: city.lon });
+        html += `<button type="button" class="chip" data-idx="${idx}" onclick="selectSuggestion(${idx})">${escapeHtml(getLocal(city.n, currentLang))}</button>`;
+      });
+      html += `</div>`;
+    }
+
+    if (cityResults.length){
+      html += `<div class="suggest-section-label">${escapeHtml(t('cityResultsLabel'))}</div><div class="suggest-list">`;
+      cityResults.forEach(function(r){
+        const idx = currentSuggestions.length;
+        const label = placeLabel(r, ['name', 'admin1', 'country']);
+        currentSuggestions.push({ label: label, lat: r.latitude, lon: r.longitude });
+        html += `<div class="suggest-item" data-idx="${idx}" onclick="selectSuggestion(${idx})">
+          <span class="si-ico">📍</span>
+          <span class="si-body">
+            <span class="si-name">${escapeHtml(r.name)}</span>
+            <span class="si-meta">${escapeHtml([r.admin1, r.country].filter(Boolean).join(', '))}</span>
+          </span>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    if (!country && !cityResults.length){
+      html = `<div class="suggest-empty">${escapeHtml(t('gpsNoMatch'))}</div>`;
+    }
+
+    const panel = document.getElementById('suggest-panel');
+    panel.innerHTML = html;
+    activeSuggestIndex = -1;
+    panel.classList.add('open');
+  }
+
+  function onCityInput(e){
+    const raw = e.target.value;
+    const q = raw.trim();
+    const clearBtn = document.getElementById('search-clear');
+    if (clearBtn) clearBtn.classList.toggle('show', q.length > 0);
+    clearTimeout(citySearchTimer);
+    if (!q){ closeSuggestPanel(); return; }
+    citySearchTimer = setTimeout(function(){ buildSuggestions(q); }, 300);
+  }
+
+  function onCityKeydown(e){
+    const panel = document.getElementById('suggest-panel');
+    const isOpen = panel && panel.classList.contains('open');
+    if (e.key === 'Enter'){
+      e.preventDefault();
+      if (isOpen && activeSuggestIndex >= 0 && currentSuggestions[activeSuggestIndex]){
+        selectSuggestion(activeSuggestIndex);
+      } else if (isOpen && currentSuggestions.length){
+        selectSuggestion(0);
+      } else {
+        searchCityForecast();
+      }
+      return;
+    }
+    if (e.key === 'Escape'){ closeSuggestPanel(); return; }
+    if (!isOpen || !currentSuggestions.length) return;
+    if (e.key === 'ArrowDown'){
+      e.preventDefault();
+      activeSuggestIndex = Math.min(activeSuggestIndex + 1, currentSuggestions.length - 1);
+      highlightActiveSuggestion(panel);
+    } else if (e.key === 'ArrowUp'){
+      e.preventDefault();
+      activeSuggestIndex = Math.max(activeSuggestIndex - 1, 0);
+      highlightActiveSuggestion(panel);
+    }
+  }
+
+  document.addEventListener('click', function(e){
+    const wrap = document.getElementById('search-wrap');
+    if (wrap && !wrap.contains(e.target)) closeSuggestPanel();
+  });
 
   async function searchCityForecast(){
     const input = document.getElementById('city-input');
     const q = input.value.trim();
     if (!q) return;
-    setLocateStatus(t('forecastLoading'));
-    let match = geoCache[q];
-    if (!match){
-      try {
-        const resp = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=${geocodeLangFor(currentLang)}`);
-        const data = await resp.json();
-        match = data.results && data.results[0];
-      } catch (e){ /* handled below */ }
+    closeSuggestPanel();
+
+    if (currentSuggestions.length){
+      selectSuggestion(0);
+      return;
     }
+
+    setLocateStatus(t('forecastLoading'));
+
+    const country = matchCountry(q);
+    if (country && country.cities.length){
+      const city = country.cities[0];
+      const label = getLocal(city.n, currentLang);
+      input.value = label;
+      setLocateStatus(label, 'ok');
+      await fetchForecastByCoords(city.lat, city.lon, label);
+      return;
+    }
+
+    const lang1 = detectQueryLang(q);
+    let results = await fetchGeocode(q, lang1);
+    if (!results.length && lang1 !== 'en') results = await fetchGeocode(q, 'en');
+    const match = results[0];
+
     if (!match){
       setLocateStatus(t('gpsNoMatch'), 'err');
       document.getElementById('forecast-days').innerHTML = `<div class="forecast-empty">${t('gpsNoMatch')}</div>`;
