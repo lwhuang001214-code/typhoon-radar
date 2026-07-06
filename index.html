@@ -210,6 +210,69 @@
   .bulletin .l-desc{color:var(--muted); font-size:12.5px; margin-top:3px; font-family:var(--body);}
   .bulletin .l-go{font-family:var(--mono); font-size:11px; color:var(--sweep); white-space:nowrap;}
 
+  /* ---------- FORECAST / GPS ---------- */
+  .locate-row{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    margin-bottom:16px;
+  }
+  .locate-btn{
+    font-family:var(--mono); font-size:12px; letter-spacing:0.03em;
+    background:var(--sweep); color:#04211c; border:none;
+    padding:9px 16px; border-radius:5px; font-weight:600;
+    cursor:pointer; display:inline-flex; align-items:center; gap:7px;
+  }
+  .locate-btn:hover{ filter:brightness(1.08); }
+  .locate-btn:disabled{ opacity:0.55; cursor:progress; }
+  .locate-status{
+    font-family:var(--mono); font-size:12px; color:var(--muted);
+  }
+  .locate-status.err{ color:var(--red); }
+  .locate-status.ok{ color:var(--sweep); }
+  .county-select{
+    font-family:var(--mono); font-size:12px;
+    background:var(--panel); color:var(--text);
+    border:1px solid var(--panel-line); border-radius:5px;
+    padding:8px 10px;
+  }
+  .apikey-row{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    margin-bottom:18px; padding:12px 14px;
+    background:var(--panel); border:1px solid var(--panel-line); border-radius:6px;
+  }
+  .apikey-row label{ font-family:var(--mono); font-size:11.5px; color:var(--muted); }
+  .apikey-row input[type="text"]{
+    font-family:var(--mono); font-size:12px;
+    background:#0b1219; color:var(--text);
+    border:1px solid var(--panel-line); border-radius:5px;
+    padding:7px 9px; min-width:220px; flex:1;
+  }
+  .apikey-row a{ color:var(--sweep); font-family:var(--mono); font-size:11px; white-space:nowrap; }
+  .apikey-save{
+    font-family:var(--mono); font-size:11px;
+    background:transparent; border:1px solid var(--panel-line); color:var(--muted);
+    padding:6px 12px; border-radius:5px; cursor:pointer;
+  }
+  .apikey-save:hover{ border-color:var(--sweep); color:var(--sweep); }
+  .forecast-days{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr));
+    gap:12px;
+  }
+  .fday{
+    background:var(--panel); border:1px solid var(--panel-line); border-radius:6px;
+    padding:14px 10px; text-align:center;
+  }
+  .fday .fd-date{ font-family:var(--mono); font-size:11px; color:var(--muted); }
+  .fday .fd-wx{ font-size:26px; margin:8px 0 4px; }
+  .fday .fd-wxtext{ font-size:12px; color:var(--text); min-height:32px; line-height:1.4; }
+  .fday .fd-temp{ font-family:var(--mono); font-size:14px; margin-top:8px; }
+  .fday .fd-temp .hi{ color:var(--amber); font-weight:600; }
+  .fday .fd-temp .lo{ color:var(--sweep); font-weight:600; }
+  .fday .fd-pop{ font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:4px; }
+  .forecast-empty{
+    font-family:var(--mono); font-size:12.5px; color:var(--muted);
+    padding:20px; text-align:center; border:1px dashed var(--panel-line); border-radius:6px;
+  }
+
   footer{
     border-top:1px solid var(--panel-line);
     padding:28px 20px 60px;
@@ -290,6 +353,35 @@
     <p class="notice"><span data-i18n="noticeImagery">影像來源：日本 NICT／Himawari-8,9 即時衛星（東亞全景，每 10 分鐘更新，延遲約 20–30 分鐘）與交通部中央氣象署開放資料（台灣雷達回波）。若圖片長時間顯示舊時間戳，代表傳輸延遲，並非網頁故障。</span> <button class="refresh-btn" onclick="hardRefresh()" data-i18n="refreshBtn">立即重新整理影像</button></p>
   </section>
 
+  <section id="forecast">
+    <div class="section-head">
+      <h2 data-i18n="sec4Heading">未來天氣預報</h2>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span class="tag" data-i18n="sec4Tag">全球天氣資料 · 未來 7 天</span>
+        <div class="langbar" style="margin:0;" role="group" aria-label="Temperature unit">
+          <button type="button" onclick="setTempUnit('celsius')" data-unit-btn="celsius">°C</button>
+          <button type="button" onclick="setTempUnit('fahrenheit')" data-unit-btn="fahrenheit">°F</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="locate-row">
+      <button class="locate-btn" id="locate-btn" onclick="locateAndForecast()">📍 <span data-i18n="gpsBtnLabel">使用 GPS 定位天氣</span></button>
+      <input type="text" id="city-input" class="county-select" list="city-suggestions"
+             data-i18n-attr="placeholder:citySearchPlaceholder" placeholder="輸入城市名稱，例如：Tokyo、台北、Paris…"
+             onkeydown="if(event.key==='Enter'){event.preventDefault(); searchCityForecast();}"
+             oninput="onCityInput(event)">
+      <datalist id="city-suggestions"></datalist>
+      <button class="apikey-save" onclick="searchCityForecast()" data-i18n="citySearchBtn">搜尋</button>
+      <span class="locate-status" id="locate-status"></span>
+    </div>
+
+    <div class="forecast-days" id="forecast-days">
+      <div class="forecast-empty" data-i18n="forecastEmpty">按上方按鈕定位，或輸入任何城市名稱，即可顯示未來幾天天氣預報。</div>
+    </div>
+    <p class="notice" data-i18n="noticeForecast">預報資料來源：Open-Meteo 全球開放天氣資料（免金鑰、免註冊，支援全世界任何座標）。定位僅在你的裝置端使用瀏覽器 GPS，座標與城市名稱轉換不會被記錄或上傳到任何伺服器。</p>
+  </section>
+
   <section id="map">
     <div class="section-head">
       <h2 data-i18n="sec2Heading">互動風暴地圖</h2>
@@ -310,7 +402,7 @@
       <span class="tag" data-i18n="sec3Tag">權威資料來源</span>
     </div>
     <div class="bulletin">
-      <a href="https://www.cwa.gov.tw/V8/C/W/Typhoon/Typhoon.html" target="_blank" rel="noopener">
+      <a href="https://www.cwa.gov.tw/V8/C/P/Typhoon/TY_NEWS.html" target="_blank" rel="noopener">
         <div>
           <div class="l-name" data-i18n="link1Name">中央氣象署 颱風消息</div>
           <div class="l-desc" data-i18n="link1Desc">最新颱風警報、路徑潛勢圖、暴風圈預測 — 台灣官方權威來源</div>
@@ -352,7 +444,7 @@
 
 <footer>
   <span data-i18n="footerLine1">資料來源：日本 NICT Himawari-8,9 即時衛星（東亞全景）、交通部中央氣象署開放資料平台（雷達回波，約每 10 分鐘更新）、Windy.com 互動地圖嵌入。</span><br>
-  <span data-i18n="footerLine2Pre">本頁僅整合公開即時影像，非官方發布管道；防災決策請以 </span><a href="https://www.cwa.gov.tw/V8/C/W/Typhoon/Typhoon.html" target="_blank" rel="noopener" data-i18n="footerLink">中央氣象署官方颱風警報</a><span data-i18n="footerLine2Post"> 為準。</span>
+  <span data-i18n="footerLine2Pre">本頁僅整合公開即時影像，非官方發布管道；防災決策請以 </span><a href="https://www.cwa.gov.tw/V8/C/P/Typhoon/TY_NEWS.html" target="_blank" rel="noopener" data-i18n="footerLink">中央氣象署官方颱風警報</a><span data-i18n="footerLine2Post"> 為準。</span>
 </footer>
 
 <script>
@@ -394,7 +486,27 @@
       footerLine1: "資料來源：日本 NICT Himawari-8,9 即時衛星（東亞全景）、交通部中央氣象署開放資料平台（雷達回波，約每 10 分鐘更新）、Windy.com 互動地圖嵌入。",
       footerLine2Pre: "本頁僅整合公開即時影像，非官方發布管道；防災決策請以 ",
       footerLink: "中央氣象署官方颱風警報",
-      footerLine2Post: " 為準。"
+      footerLine2Post: " 為準。",
+      sec4Heading: "未來天氣預報",
+      sec4Tag: "全球天氣資料 · 未來 7 天",
+      apiKeyLabel: "氣象開放資料 API 授權碼：",
+      apiKeyPlaceholder: "貼上你的 CWA Authorization Key",
+      apiKeySave: "儲存",
+      apiKeyLink: "免費申請授權碼 ↗",
+      gpsBtnLabel: "使用 GPS 定位天氣",
+      gpsLocating: "定位中…",
+      gpsFound: "已定位：{place}",
+      gpsDenied: "無法取得定位權限，請改用下方輸入框搜尋城市。",
+      gpsUnsupported: "此瀏覽器不支援定位功能，請改用下方輸入框搜尋城市。",
+      gpsNoMatch: "找不到這個地點，請換個名稱再試一次（例如加上國家名）。",
+      citySearchPlaceholder: "輸入城市名稱，例如：Tokyo、台北、Paris…",
+      citySearchBtn: "搜尋",
+      countySelectPlaceholder: "或手動選擇縣市…",
+      forecastEmpty: "按上方按鈕定位，或輸入任何城市名稱，即可顯示未來幾天天氣預報。",
+      forecastLoading: "天氣預報載入中…",
+      forecastError: "天氣預報載入失敗，請稍後再試，或換個城市名稱。",
+      needApiKey: "請先在上方輸入並儲存你的 CWA 開放資料 API 授權碼。",
+      noticeForecast: "預報資料來源：Open-Meteo 全球開放天氣資料（免金鑰、免註冊，支援全世界任何座標）。定位僅在你的裝置端使用瀏覽器 GPS，座標與城市名稱轉換不會被記錄或上傳到任何伺服器。"
     },
     "zh-Hans": {
       title: "台风动态实时影像站",
@@ -432,7 +544,27 @@
       footerLine1: "数据来源：日本 NICT Himawari-8,9 实时卫星（东亚全景）、台湾交通部中央气象署开放数据平台（雷达回波，约每 10 分钟更新）、Windy.com 互动地图嵌入。",
       footerLine2Pre: "本页仅整合公开实时影像，非官方发布渠道；防灾决策请以 ",
       footerLink: "中央气象署官方台风警报",
-      footerLine2Post: " 为准。"
+      footerLine2Post: " 为准。",
+      sec4Heading: "未来天气预报",
+      sec4Tag: "全球天气数据 · 未来 7 天",
+      apiKeyLabel: "气象开放数据 API 授权码：",
+      apiKeyPlaceholder: "粘贴你的 CWA Authorization Key",
+      apiKeySave: "保存",
+      apiKeyLink: "免费申请授权码 ↗",
+      gpsBtnLabel: "使用 GPS 定位天气",
+      gpsLocating: "定位中…",
+      gpsFound: "已定位：{place}",
+      gpsDenied: "无法取得定位权限，请改用下方输入框搜索城市。",
+      gpsUnsupported: "此浏览器不支持定位功能，请改用下方输入框搜索城市。",
+      gpsNoMatch: "找不到这个地点，请换个名称再试一次（例如加上国家名）。",
+      citySearchPlaceholder: "输入城市名称，例如：Tokyo、台北、Paris…",
+      citySearchBtn: "搜索",
+      countySelectPlaceholder: "或手动选择县市…",
+      forecastEmpty: "按上方按钮定位，或输入任何城市名称，即可显示未来几天天气预报。",
+      forecastLoading: "天气预报加载中…",
+      forecastError: "天气预报加载失败，请稍后再试，或换个城市名称。",
+      needApiKey: "请先在上方输入并保存你的 CWA 开放数据 API 授权码。",
+      noticeForecast: "预报数据来源：Open-Meteo 全球开放天气数据（免密钥、免注册，支持全世界任何坐标）。定位仅在你的设备端使用浏览器 GPS，坐标与城市名称转换不会被记录或上传到任何服务器。"
     },
     "en": {
       title: "Live Typhoon Tracker",
@@ -470,7 +602,27 @@
       footerLine1: "Sources: Japan NICT Himawari-8,9 real-time satellite (East Asia full disk), Taiwan CWA open data platform (radar, updated roughly every 10 min), Windy.com interactive map embed.",
       footerLine2Pre: "This page only aggregates public real-time imagery and is not an official alert channel; for safety decisions, always defer to ",
       footerLink: "CWA's official typhoon warnings",
-      footerLine2Post: "."
+      footerLine2Post: ".",
+      sec4Heading: "Multi-day Forecast",
+      sec4Tag: "Global weather data · Next 7 days",
+      apiKeyLabel: "CWA Open Data API key:",
+      apiKeyPlaceholder: "Paste your CWA Authorization Key",
+      apiKeySave: "Save",
+      apiKeyLink: "Get a free API key ↗",
+      gpsBtnLabel: "Locate me (GPS forecast)",
+      gpsLocating: "Locating…",
+      gpsFound: "Located: {place}",
+      gpsDenied: "Location permission denied. Search for a city below instead.",
+      gpsUnsupported: "This browser doesn't support geolocation. Search for a city below instead.",
+      gpsNoMatch: "Couldn't find that place. Try a different name (adding the country helps).",
+      citySearchPlaceholder: "Type a city name, e.g. Tokyo, Taipei, Paris…",
+      citySearchBtn: "Search",
+      countySelectPlaceholder: "Or choose a county manually…",
+      forecastEmpty: "Tap the button to locate yourself, or type any city name, to see the multi-day forecast.",
+      forecastLoading: "Loading forecast…",
+      forecastError: "Failed to load the forecast. Try again later, or try a different city.",
+      needApiKey: "Please enter and save your CWA Open Data API key above first.",
+      noticeForecast: "Forecast source: Open-Meteo global weather data (no key or sign-up needed, works anywhere in the world). Location is resolved on your device using browser GPS only; nothing is logged or uploaded to any server."
     },
     "ja": {
       title: "台風ライブ観測サイト",
@@ -508,7 +660,27 @@
       footerLine1: "データ提供：日本NICT ひまわり8・9号 リアルタイム衛星（東アジア全域）、台湾交通部中央気象署オープンデータプラットフォーム（レーダー、約10分ごと更新）、Windy.com インタラクティブマップ埋め込み。",
       footerLine2Pre: "このページは公開されているリアルタイム画像を集約したものであり、公式の発表チャンネルではありません。防災に関する判断は必ず",
       footerLink: "気象署の公式台風警報",
-      footerLine2Post: "を確認してください。"
+      footerLine2Post: "を確認してください。",
+      sec4Heading: "今後の天気予報",
+      sec4Tag: "世界の気象データ · 今後7日間",
+      apiKeyLabel: "気象オープンデータ API キー：",
+      apiKeyPlaceholder: "CWA Authorization Key を貼り付け",
+      apiKeySave: "保存",
+      apiKeyLink: "無料でAPIキーを申請 ↗",
+      gpsBtnLabel: "GPSで現在地の天気を取得",
+      gpsLocating: "位置情報を取得中…",
+      gpsFound: "位置を特定：{place}",
+      gpsDenied: "位置情報の権限が得られませんでした。下の欄で都市名を検索してください。",
+      gpsUnsupported: "このブラウザは位置情報に対応していません。下の欄で都市名を検索してください。",
+      gpsNoMatch: "その場所が見つかりませんでした。別の名前（国名を添えるなど）で試してください。",
+      citySearchPlaceholder: "都市名を入力（例：Tokyo、台北、Paris…）",
+      citySearchBtn: "検索",
+      countySelectPlaceholder: "または手動で県市を選択…",
+      forecastEmpty: "上のボタンで位置を取得するか、都市名を入力すると今後数日の天気予報が表示されます。",
+      forecastLoading: "天気予報を読み込み中…",
+      forecastError: "天気予報の読み込みに失敗しました。しばらくしてから再試行するか、別の都市名を試してください。",
+      needApiKey: "先に上部でCWAオープンデータのAPIキーを入力・保存してください。",
+      noticeForecast: "予報データ提供：Open-Meteo（世界中どこでも利用可能な無料・登録不要の気象データ）。位置情報の取得は端末内でブラウザのGPSのみを使用し、サーバーには記録・送信されません。"
     }
   };
 
@@ -542,6 +714,8 @@
 
     stampNow('sat-stamp');
     stampNow('radar-stamp');
+
+    if (typeof refreshForecastLanguage === 'function') refreshForecastLanguage();
   }
 
   function setLang(lang){ applyLang(lang); }
@@ -596,6 +770,220 @@
     stampNow('radar-stamp');
   }
   function hardRefresh(){ refreshImages(); }
+
+  /* ================= FORECAST / GPS (Open-Meteo, global, no API key) ================= */
+  function t(key){
+    const dict = I18N[currentLang] || I18N["zh-Hant"];
+    return dict[key] || key;
+  }
+
+  function setLocateStatus(text, cls){
+    const el = document.getElementById('locate-status');
+    if (!el) return;
+    el.textContent = text || '';
+    el.className = 'locate-status' + (cls ? ' ' + cls : '');
+  }
+
+  function geocodeLangFor(lang){
+    const map = { 'zh-Hant':'zh', 'zh-Hans':'zh', 'en':'en', 'ja':'ja' };
+    return map[lang] || 'en';
+  }
+
+  const WMO = {
+    0:  { icon:'☀️', 'zh-Hant':'晴朗', 'zh-Hans':'晴朗', en:'Clear sky', ja:'快晴' },
+    1:  { icon:'🌤️', 'zh-Hant':'晴時多雲', 'zh-Hans':'晴时多云', en:'Mainly clear', ja:'ほぼ晴れ' },
+    2:  { icon:'⛅', 'zh-Hant':'多雲', 'zh-Hans':'多云', en:'Partly cloudy', ja:'曇り時々晴れ' },
+    3:  { icon:'☁️', 'zh-Hant':'陰天', 'zh-Hans':'阴天', en:'Overcast', ja:'曇り' },
+    45: { icon:'🌫️', 'zh-Hant':'有霧', 'zh-Hans':'有雾', en:'Fog', ja:'霧' },
+    48: { icon:'🌫️', 'zh-Hant':'霧凇', 'zh-Hans':'雾凇', en:'Rime fog', ja:'霧氷' },
+    51: { icon:'🌦️', 'zh-Hant':'毛毛雨（小）', 'zh-Hans':'毛毛雨（小）', en:'Light drizzle', ja:'弱い霧雨' },
+    53: { icon:'🌦️', 'zh-Hant':'毛毛雨（中）', 'zh-Hans':'毛毛雨（中）', en:'Moderate drizzle', ja:'霧雨' },
+    55: { icon:'🌦️', 'zh-Hant':'毛毛雨（大）', 'zh-Hans':'毛毛雨（大）', en:'Dense drizzle', ja:'強い霧雨' },
+    56: { icon:'🌧️', 'zh-Hant':'凍雨（小）', 'zh-Hans':'冻雨（小）', en:'Light freezing drizzle', ja:'弱い着氷性の霧雨' },
+    57: { icon:'🌧️', 'zh-Hant':'凍雨（大）', 'zh-Hans':'冻雨（大）', en:'Dense freezing drizzle', ja:'強い着氷性の霧雨' },
+    61: { icon:'🌧️', 'zh-Hant':'小雨', 'zh-Hans':'小雨', en:'Slight rain', ja:'小雨' },
+    63: { icon:'🌧️', 'zh-Hant':'中雨', 'zh-Hans':'中雨', en:'Moderate rain', ja:'雨' },
+    65: { icon:'🌧️', 'zh-Hant':'大雨', 'zh-Hans':'大雨', en:'Heavy rain', ja:'強い雨' },
+    66: { icon:'🌧️', 'zh-Hant':'凍雨（小）', 'zh-Hans':'冻雨（小）', en:'Light freezing rain', ja:'弱い着氷性の雨' },
+    67: { icon:'🌧️', 'zh-Hant':'凍雨（大）', 'zh-Hans':'冻雨（大）', en:'Heavy freezing rain', ja:'強い着氷性の雨' },
+    71: { icon:'🌨️', 'zh-Hant':'小雪', 'zh-Hans':'小雪', en:'Slight snow fall', ja:'小雪' },
+    73: { icon:'🌨️', 'zh-Hant':'中雪', 'zh-Hans':'中雪', en:'Moderate snow fall', ja:'雪' },
+    75: { icon:'❄️', 'zh-Hant':'大雪', 'zh-Hans':'大雪', en:'Heavy snow fall', ja:'大雪' },
+    77: { icon:'🌨️', 'zh-Hant':'雪粒', 'zh-Hans':'雪粒', en:'Snow grains', ja:'雪あられ' },
+    80: { icon:'🌦️', 'zh-Hant':'陣雨（小）', 'zh-Hans':'阵雨（小）', en:'Light rain showers', ja:'にわか雨（弱い）' },
+    81: { icon:'🌧️', 'zh-Hant':'陣雨（中）', 'zh-Hans':'阵雨（中）', en:'Moderate rain showers', ja:'にわか雨' },
+    82: { icon:'⛈️', 'zh-Hant':'陣雨（強）', 'zh-Hans':'阵雨（强）', en:'Violent rain showers', ja:'激しいにわか雨' },
+    85: { icon:'🌨️', 'zh-Hant':'陣雪（小）', 'zh-Hans':'阵雪（小）', en:'Light snow showers', ja:'にわか雪（弱い）' },
+    86: { icon:'❄️', 'zh-Hant':'陣雪（大）', 'zh-Hans':'阵雪（大）', en:'Heavy snow showers', ja:'にわか雪（強い）' },
+    95: { icon:'⛈️', 'zh-Hant':'雷雨', 'zh-Hans':'雷雨', en:'Thunderstorm', ja:'雷雨' },
+    96: { icon:'⛈️', 'zh-Hant':'雷雨挾冰雹', 'zh-Hans':'雷雨夹冰雹', en:'Thunderstorm with hail', ja:'雷雨（ひょうを伴う）' },
+    99: { icon:'⛈️', 'zh-Hant':'雷雨挾冰雹（強）', 'zh-Hans':'雷雨夹冰雹（强）', en:'Severe thunderstorm with hail', ja:'雷雨（ひょうを伴う、強い）' }
+  };
+
+  let tempUnit = localStorage.getItem('tempUnit') || (((navigator.language || '').toLowerCase() === 'en-us') ? 'fahrenheit' : 'celsius');
+  let lastCoords = null;
+  let lastDailyData = null;
+  let geoCache = {};
+  let citySearchTimer = null;
+
+  async function refreshForecastLanguage(){
+    if (lastDailyData) renderForecast(lastDailyData);
+    if (lastCoords){
+      try {
+        const label = await reverseGeocodeLabel(lastCoords.lat, lastCoords.lon);
+        if (label){
+          lastCoords.label = label;
+          setLocateStatus(t('gpsFound').replace('{place}', label), 'ok');
+          const cityInput = document.getElementById('city-input');
+          if (cityInput) cityInput.value = label;
+        }
+      } catch (e){ /* keep existing label if reverse geocode fails */ }
+    }
+  }
+
+  function initUnitButtons(){
+    document.querySelectorAll('[data-unit-btn]').forEach(function(b){
+      b.setAttribute('aria-pressed', b.getAttribute('data-unit-btn') === tempUnit ? 'true' : 'false');
+    });
+  }
+
+  function setTempUnit(unit){
+    tempUnit = unit;
+    localStorage.setItem('tempUnit', unit);
+    initUnitButtons();
+    if (lastCoords) fetchForecastByCoords(lastCoords.lat, lastCoords.lon, lastCoords.label);
+  }
+
+  function placeLabel(obj, keys){
+    return keys.map(function(k){ return obj[k]; }).filter(Boolean).join(', ');
+  }
+
+  async function reverseGeocodeLabel(lat, lon){
+    try {
+      const resp = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=${geocodeLangFor(currentLang)}`);
+      const data = await resp.json();
+      return placeLabel(data, ['city', 'locality', 'principalSubdivision', 'countryName']) || placeLabel(data, ['countryName']);
+    } catch (e){ return ''; }
+  }
+
+  function locateAndForecast(){
+    if (!navigator.geolocation){
+      setLocateStatus(t('gpsUnsupported'), 'err');
+      return;
+    }
+    const btn = document.getElementById('locate-btn');
+    btn.disabled = true;
+    setLocateStatus(t('gpsLocating'));
+    navigator.geolocation.getCurrentPosition(async function(pos){
+      const lat = pos.coords.latitude, lon = pos.coords.longitude;
+      let label = '';
+      try { label = await reverseGeocodeLabel(lat, lon); } catch(e){}
+      const shownLabel = label || `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+      setLocateStatus(t('gpsFound').replace('{place}', shownLabel), 'ok');
+      const cityInput = document.getElementById('city-input');
+      if (cityInput && label) cityInput.value = label;
+      await fetchForecastByCoords(lat, lon, shownLabel);
+      btn.disabled = false;
+    }, function(){
+      setLocateStatus(t('gpsDenied'), 'err');
+      btn.disabled = false;
+    }, { enableHighAccuracy:false, timeout:10000, maximumAge:600000 });
+  }
+
+  async function onCityInput(e){
+    const q = e.target.value.trim();
+    if (q.length < 2) return;
+    clearTimeout(citySearchTimer);
+    citySearchTimer = setTimeout(async function(){
+      try {
+        const resp = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=${geocodeLangFor(currentLang)}`);
+        const data = await resp.json();
+        const dl = document.getElementById('city-suggestions');
+        dl.innerHTML = '';
+        geoCache = {};
+        (data.results || []).forEach(function(r){
+          const label = placeLabel(r, ['name', 'admin1', 'country']);
+          geoCache[label] = r;
+          const opt = document.createElement('option');
+          opt.value = label;
+          dl.appendChild(opt);
+        });
+      } catch (e){ /* ignore, user can still press search */ }
+    }, 350);
+  }
+
+  async function searchCityForecast(){
+    const input = document.getElementById('city-input');
+    const q = input.value.trim();
+    if (!q) return;
+    setLocateStatus(t('forecastLoading'));
+    let match = geoCache[q];
+    if (!match){
+      try {
+        const resp = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=${geocodeLangFor(currentLang)}`);
+        const data = await resp.json();
+        match = data.results && data.results[0];
+      } catch (e){ /* handled below */ }
+    }
+    if (!match){
+      setLocateStatus(t('gpsNoMatch'), 'err');
+      document.getElementById('forecast-days').innerHTML = `<div class="forecast-empty">${t('gpsNoMatch')}</div>`;
+      return;
+    }
+    const label = placeLabel(match, ['name', 'admin1', 'country']);
+    setLocateStatus(label, 'ok');
+    await fetchForecastByCoords(match.latitude, match.longitude, label);
+  }
+
+  async function fetchForecastByCoords(lat, lon, label){
+    lastCoords = { lat: lat, lon: lon, label: label };
+    const container = document.getElementById('forecast-days');
+    container.innerHTML = `<div class="forecast-empty">${t('forecastLoading')}</div>`;
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7&temperature_unit=${tempUnit}`;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('http ' + resp.status);
+      const data = await resp.json();
+      lastDailyData = data.daily;
+      renderForecast(data.daily);
+    } catch (e){
+      container.innerHTML = `<div class="forecast-empty">${t('forecastError')}</div>`;
+    }
+  }
+
+  function renderForecast(daily){
+    const container = document.getElementById('forecast-days');
+    if (!daily || !daily.time || !daily.time.length){
+      container.innerHTML = `<div class="forecast-empty">${t('forecastError')}</div>`;
+      return;
+    }
+    const localeMap = { 'ja':'ja-JP', 'en':'en-US', 'zh-Hans':'zh-CN', 'zh-Hant':'zh-TW' };
+    const locale = localeMap[currentLang] || 'en-US';
+    const unitLetter = tempUnit === 'fahrenheit' ? 'F' : 'C';
+
+    let html = '';
+    daily.time.forEach(function(dateStr, i){
+      const d = new Date(dateStr + 'T00:00:00');
+      const md = `${d.getMonth() + 1}/${d.getDate()}`;
+      const weekday = d.toLocaleDateString(locale, { weekday: 'short' });
+      const code = daily.weathercode[i];
+      const info = WMO[code] || { icon:'🌡️' };
+      const desc = info[currentLang] || info['en'] || '';
+      const hi = Math.round(daily.temperature_2m_max[i]);
+      const lo = Math.round(daily.temperature_2m_min[i]);
+      const pop = (daily.precipitation_probability_max && daily.precipitation_probability_max[i] != null) ? daily.precipitation_probability_max[i] : null;
+      html += `<div class="fday">
+        <div class="fd-date">${md} ${weekday}</div>
+        <div class="fd-wx">${info.icon}</div>
+        <div class="fd-wxtext">${desc}</div>
+        <div class="fd-temp"><span class="hi">${hi}°${unitLetter}</span> / <span class="lo">${lo}°${unitLetter}</span></div>
+        ${pop !== null ? `<div class="fd-pop">☔ ${pop}%</div>` : ''}
+      </div>`;
+    });
+    container.innerHTML = html;
+  }
+
+  initUnitButtons();
 
   applyLang(detectInitialLang());
   refreshImages();
