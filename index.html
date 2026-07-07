@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title data-i18n="title">颱風動態即時影像站</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <style>
   :root{
     --bg:#070b10;
@@ -180,6 +181,56 @@
   .refresh-btn:focus-visible, a:focus-visible, button:focus-visible{
     outline:2px solid var(--sweep); outline-offset:2px;
   }
+
+  /* ---------- ROTATING 3D GLOBE (left panel) ---------- */
+  .globe-wrap{
+    position:relative;
+    aspect-ratio:1/1;
+    background:radial-gradient(circle at 50% 38%, #0c1922 0%, #05080c 72%);
+    overflow:hidden;
+  }
+  .globe-canvas-wrap{ width:100%; height:100%; cursor:grab; touch-action:none; }
+  .globe-canvas-wrap:active{ cursor:grabbing; }
+  .globe-canvas-wrap canvas{ display:block; }
+  .globe-hint{
+    position:absolute; left:0; right:0; bottom:0;
+    text-align:center; padding:20px 10px 10px;
+    background:linear-gradient(to top, rgba(0,0,0,0.55), transparent);
+    font-family:var(--mono); font-size:11px; color:var(--text);
+    pointer-events:none; letter-spacing:0.03em;
+  }
+  .thumb-row{
+    border-top:1px solid var(--panel-line);
+    padding:9px 14px;
+  }
+  .thumb-link{ display:flex; align-items:center; gap:10px; text-decoration:none; }
+  .thumb-img{
+    width:42px; height:42px; object-fit:cover; flex:none;
+    border-radius:4px; border:1px solid var(--panel-line); background:#000;
+  }
+  .thumb-label{ font-family:var(--mono); font-size:11.5px; color:var(--sweep); line-height:1.5; }
+
+  /* ---------- FREELY DRAGGABLE RADAR MAP (right panel) ---------- */
+  .radar-map-wrap{ position:relative; aspect-ratio:1/1; background:#0b1219; }
+  #radar-map{ width:100%; height:100%; background:#0b1219; }
+  .map-hint{
+    position:absolute; left:0; right:0; bottom:0; z-index:400;
+    text-align:center; padding:20px 10px 10px;
+    background:linear-gradient(to top, rgba(0,0,0,0.55), transparent);
+    font-family:var(--mono); font-size:11px; color:var(--text);
+    pointer-events:none; letter-spacing:0.03em;
+  }
+  /* dark-theme tweaks for Leaflet's default (light) chrome */
+  .leaflet-container{ background:#0b1219; font-family:var(--body); }
+  .leaflet-control-zoom a{
+    background:var(--panel) !important; color:var(--text) !important;
+    border-color:var(--panel-line) !important;
+  }
+  .leaflet-control-zoom a:hover{ background:#131c26 !important; color:var(--sweep) !important; }
+  .leaflet-control-attribution{
+    background:rgba(7,11,16,0.75) !important; color:var(--muted) !important;
+  }
+  .leaflet-control-attribution a{ color:var(--sweep) !important; }
 
   .map-panel iframe{width:100%; height:560px; border:0; display:block;}
   @media (max-width:820px){ .map-panel iframe{ height:440px; } }
@@ -402,13 +453,16 @@
           <span class="name" data-i18n="satName">Himawari 衛星雲圖 · 東亞全景</span>
           <span class="stamp" id="sat-stamp" data-i18n="loading">載入中…</span>
         </div>
-        <div class="img-wrap">
-          <img id="sat-img" data-i18n-attr="alt:satAlt" alt="Himawari 衛星即時雲圖（東亞全景）" referrerpolicy="no-referrer"
-               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-          <div class="fallback">
-            <span data-i18n="satFallbackText">影像目前無法載入。</span>
-            <a href="https://himawari8.nict.go.jp/" target="_blank" rel="noopener" data-i18n="satFallbackLink">NICT Himawari 即時衛星網站 ↗</a>
-          </div>
+        <div class="globe-wrap">
+          <div class="globe-canvas-wrap" id="globe-canvas-wrap"></div>
+          <div class="globe-hint" data-i18n="globeHint">🖱️ 拖曳可自由旋轉地球 · 放手後自動繼續轉動</div>
+        </div>
+        <div class="thumb-row">
+          <a class="thumb-link" href="https://himawari8.nict.go.jp/" target="_blank" rel="noopener">
+            <img id="sat-thumb-img" class="thumb-img" data-i18n-attr="alt:satAlt" alt="Himawari 衛星即時雲圖縮圖" referrerpolicy="no-referrer"
+                 onerror="this.style.visibility='hidden';">
+            <span class="thumb-label" data-i18n="satThumbLabel">查看 Himawari 即時衛星雲圖原始影像 ↗</span>
+          </a>
         </div>
       </div>
 
@@ -417,14 +471,9 @@
           <span class="name" data-i18n="radarName">雷達回波 · 台灣鄰近區域</span>
           <span class="stamp" id="radar-stamp" data-i18n="loading">載入中…</span>
         </div>
-        <div class="img-wrap">
-          <img id="radar-img" data-i18n-attr="alt:radarAlt" alt="中央氣象署台灣即時雷達回波圖" referrerpolicy="no-referrer"
-               src="https://www.cwa.gov.tw/Data/radar/CV1_TW_1000.png"
-               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-          <div class="fallback">
-            <span data-i18n="radarFallbackText">影像目前無法載入（可能為政府網站暫時阻擋跨站讀取）。</span>
-            <a href="https://www.cwa.gov.tw/V8/C/W/OBS_Radar.html" target="_blank" rel="noopener" data-i18n="radarFallbackLink">中央氣象署 雷達回波頁面 ↗</a>
-          </div>
+        <div class="radar-map-wrap">
+          <div id="radar-map"></div>
+          <div class="map-hint" data-i18n="mapHint">🖱️ 可自由拖曳、滾輪縮放地圖</div>
         </div>
       </div>
 
@@ -535,6 +584,8 @@
   <span data-i18n="footerLine2Pre">本頁僅整合公開即時影像，非官方發布管道；防災決策請以 </span><a href="https://www.cwa.gov.tw/V8/C/P/Typhoon/TY_NEWS.html" target="_blank" rel="noopener" data-i18n="footerLink">中央氣象署官方颱風警報</a><span data-i18n="footerLine2Post"> 為準。</span>
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
   /* ================= I18N ================= */
   const I18N = {
@@ -551,7 +602,10 @@
       satAlt: "Himawari 衛星即時雲圖（東亞全景）",
       satFallbackText: "影像目前無法載入。",
       satFallbackLink: "NICT Himawari 即時衛星網站 ↗",
-      radarName: "雷達回波 · 台灣鄰近區域",
+      globeHint: "🖱️ 拖曳可自由旋轉地球 · 放手後自動繼續轉動",
+      satThumbLabel: "查看 Himawari 即時衛星雲圖原始影像 ↗",
+      mapHint: "🖱️ 可拖曳至全球任一地區、滾輪縮放（含全球雨雷達圖層）",
+      radarName: "即時雨雷達 · 全球",
       radarAlt: "中央氣象署台灣即時雷達回波圖",
       radarFallbackText: "影像目前無法載入（可能為政府網站暫時阻擋跨站讀取）。",
       radarFallbackLink: "中央氣象署 雷達回波頁面 ↗",
@@ -611,7 +665,10 @@
       satAlt: "Himawari 卫星实时云图（东亚全景）",
       satFallbackText: "影像目前无法加载。",
       satFallbackLink: "NICT Himawari 实时卫星网站 ↗",
-      radarName: "雷达回波 · 台湾邻近区域",
+      globeHint: "🖱️ 拖动可自由旋转地球 · 松手后自动继续转动",
+      satThumbLabel: "查看 Himawari 实时卫星云图原始影像 ↗",
+      mapHint: "🖱️ 可拖动至全球任意地区、滚轮缩放（含全球雨雷达图层）",
+      radarName: "实时雨雷达 · 全球",
       radarAlt: "中央气象署台湾实时雷达回波图",
       radarFallbackText: "影像目前无法加载（可能是政府网站暂时阻挡跨站读取）。",
       radarFallbackLink: "中央气象署 雷达回波页面 ↗",
@@ -671,7 +728,10 @@
       satAlt: "Himawari live satellite image (East Asia full disk)",
       satFallbackText: "This image failed to load right now.",
       satFallbackLink: "Open NICT Himawari live site ↗",
-      radarName: "Radar reflectivity · Taiwan vicinity",
+      globeHint: "🖱️ Drag to spin the globe · auto-rotates when released",
+      satThumbLabel: "View original Himawari satellite snapshot ↗",
+      mapHint: "🖱️ Drag anywhere in the world, scroll to zoom (global radar layer included)",
+      radarName: "Live rain radar · Global",
       radarAlt: "CWA Taiwan live radar reflectivity image",
       radarFallbackText: "This image failed to load (the government site may be temporarily blocking cross-site loading).",
       radarFallbackLink: "Open CWA radar page ↗",
@@ -731,7 +791,10 @@
       satAlt: "ひまわり衛星のリアルタイム雲画像（東アジア全域）",
       satFallbackText: "現在この画像を読み込めません。",
       satFallbackLink: "NICT ひまわりリアルタイムサイトを開く ↗",
-      radarName: "レーダー反射強度 · 台湾周辺",
+      globeHint: "🖱️ ドラッグで地球を回転 · 離すと自動回転を再開",
+      satThumbLabel: "ひまわり衛星のオリジナル画像を見る ↗",
+      mapHint: "🖱️ 世界中どこへでもドラッグ可能・スクロールで拡大縮小（グローバル降水レーダー付き）",
+      radarName: "リアルタイム降水レーダー · 世界",
       radarAlt: "台湾気象署のリアルタイムレーダー画像",
       radarFallbackText: "画像を読み込めません（政府サイトが一時的にクロスサイト読み込みを制限している可能性があります）。",
       radarFallbackLink: "気象署のレーダーページを開く ↗",
@@ -858,14 +921,240 @@
 
   function refreshImages(){
     const t = Date.now();
-    const sat = document.getElementById('sat-img');
-    const radar = document.getElementById('radar-img');
-    sat.src = himawariUrl() + '?_=' + t;
-    radar.src = 'https://www.cwa.gov.tw/Data/radar/CV1_TW_1000.png?_=' + t;
+    const satThumb = document.getElementById('sat-thumb-img');
+    if (satThumb) satThumb.src = himawariUrl() + '?_=' + t;
+    if (typeof refreshRadarOverlay === 'function') refreshRadarOverlay();
     stampNow('sat-stamp');
     stampNow('radar-stamp');
   }
   function hardRefresh(){ refreshImages(); }
+
+  /* ================= ROTATING 3D GLOBE (Three.js) ================= */
+  /* Convert (lat, lon) in degrees to a point on a unit sphere, using the
+     same convention as the equirectangular earth texture below, so that
+     the "sun" direction we compute lines up with the real geography. */
+  function latLonToVector3(lat, lon, radius){
+    const phi = (90 - lat) * Math.PI / 180;
+    const theta = (lon + 180) * Math.PI / 180;
+    return new THREE.Vector3(
+      -radius * Math.sin(phi) * Math.cos(theta),
+       radius * Math.cos(phi),
+       radius * Math.sin(phi) * Math.sin(theta)
+    );
+  }
+
+  /* Low-precision (but decent) subsolar point: the lat/lon on Earth where
+     the sun is directly overhead right now. Good enough to draw a realistic,
+     live-updating day/night line without needing an external ephemeris API. */
+  function getSubsolarPoint(date){
+    const startOfYear = new Date(Date.UTC(date.getUTCFullYear(), 0, 0));
+    const dayOfYear = (date - startOfYear) / 86400000;
+    const decl = 23.44 * Math.sin((2 * Math.PI / 365.24) * (dayOfYear - 81));
+    const utcHours = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
+    let lon = (12 - utcHours) * 15;
+    lon = ((lon + 180) % 360 + 360) % 360 - 180;
+    return { lat: decl, lon: lon };
+  }
+
+  function initGlobe(){
+    const container = document.getElementById('globe-canvas-wrap');
+    if (!container || typeof THREE === 'undefined') return;
+    let width = container.clientWidth || 300, height = container.clientHeight || 300;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 1000);
+    camera.position.z = 2.7;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(width, height);
+    container.appendChild(renderer.domElement);
+
+    /* realistic starry space background — soft round points, varied size & brightness */
+    function makeStarSprite(){
+      const size = 64;
+      const cnv = document.createElement('canvas');
+      cnv.width = cnv.height = size;
+      const ctx = cnv.getContext('2d');
+      const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+      grad.addColorStop(0, 'rgba(255,255,255,1)');
+      grad.addColorStop(0.4, 'rgba(255,255,255,0.7)');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, size, size);
+      return new THREE.CanvasTexture(cnv);
+    }
+    const starSprite = makeStarSprite();
+
+    function buildStarLayer(count, radiusMin, radiusRange, size, opacity){
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++){
+        const r = radiusMin + Math.random() * radiusRange;
+        const th = Math.random() * Math.PI * 2;
+        const ph = Math.acos(2 * Math.random() - 1);
+        pos[i*3]   = r * Math.sin(ph) * Math.cos(th);
+        pos[i*3+1] = r * Math.sin(ph) * Math.sin(th);
+        pos[i*3+2] = r * Math.cos(ph);
+      }
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const mat = new THREE.PointsMaterial({
+        map: starSprite, color: 0xffffff, size: size,
+        transparent: true, opacity: opacity, depthWrite: false, sizeAttenuation: true
+      });
+      return new THREE.Points(geo, mat);
+    }
+    // layered: lots of tiny dim far stars + fewer bigger bright ones, for depth
+    scene.add(buildStarLayer(2600, 30, 90, 0.22, 0.75));
+    scene.add(buildStarLayer(500, 25, 70, 0.5, 0.9));
+    scene.add(buildStarLayer(80, 20, 50, 0.9, 1.0));
+
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.crossOrigin = 'anonymous';
+    const base = 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/';
+    const earthTex = textureLoader.load(base + 'earth_atmos_2048.jpg');
+    const specTex  = textureLoader.load(base + 'earth_specular_2048.jpg');
+    const normTex  = textureLoader.load(base + 'earth_normal_2048.jpg');
+    const cloudTex = textureLoader.load(base + 'earth_clouds_1024.png');
+
+    /* tilt the whole planet ~23.4° like the real Earth's axis */
+    const tiltGroup = new THREE.Group();
+    tiltGroup.rotation.z = 23.4 * Math.PI / 180;
+    scene.add(tiltGroup);
+
+    const earthGeo = new THREE.SphereGeometry(1, 96, 96);
+    const earthMat = new THREE.MeshPhongMaterial({
+      map: earthTex,
+      specularMap: specTex,
+      normalMap: normTex,
+      normalScale: new THREE.Vector2(0.75, 0.75),
+      specular: new THREE.Color(0x223333),
+      shininess: 9
+    });
+    const earth = new THREE.Mesh(earthGeo, earthMat);
+    tiltGroup.add(earth);
+
+    const cloudGeo = new THREE.SphereGeometry(1.012, 96, 96);
+    const cloudMat = new THREE.MeshLambertMaterial({ map: cloudTex, transparent: true, opacity: 0.45, depthWrite: false });
+    const clouds = new THREE.Mesh(cloudGeo, cloudMat);
+    tiltGroup.add(clouds);
+
+    /* dim ambient so the night side reads as genuinely dark, real "sun" light below */
+    scene.add(new THREE.AmbientLight(0x1a2233, 0.55));
+    const sun = new THREE.DirectionalLight(0xfff4e0, 2.0);
+    scene.add(sun);
+
+    function updateSunPosition(){
+      const sp = getSubsolarPoint(new Date());
+      const localDir = latLonToVector3(sp.lat, sp.lon, 6);
+      const worldDir = localDir.applyQuaternion(earth.quaternion);
+      sun.position.copy(worldDir);
+    }
+    updateSunPosition();
+
+    let rotY = 0, rotX = -0.1;
+    let autoRotate = true;
+    let dragging = false;
+    let lastX = 0, lastY = 0;
+    let resumeTimer = null;
+
+    function onDown(x, y){
+      dragging = true; autoRotate = false;
+      lastX = x; lastY = y;
+      clearTimeout(resumeTimer);
+    }
+    function onMove(x, y){
+      if (!dragging) return;
+      const dx = x - lastX, dy = y - lastY;
+      rotY += dx * 0.006;
+      rotX += dy * 0.006;
+      rotX = Math.max(-1.1, Math.min(1.1, rotX));
+      lastX = x; lastY = y;
+    }
+    function onUp(){
+      dragging = false;
+      clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(function(){ autoRotate = true; }, 2600);
+    }
+
+    const el = renderer.domElement;
+    el.addEventListener('mousedown', function(e){ onDown(e.clientX, e.clientY); });
+    window.addEventListener('mousemove', function(e){ onMove(e.clientX, e.clientY); });
+    window.addEventListener('mouseup', onUp);
+    el.addEventListener('touchstart', function(e){ const t0 = e.touches[0]; onDown(t0.clientX, t0.clientY); }, { passive: true });
+    el.addEventListener('touchmove', function(e){ const t0 = e.touches[0]; onMove(t0.clientX, t0.clientY); }, { passive: true });
+    el.addEventListener('touchend', onUp);
+
+    let frame = 0;
+    function animate(){
+      requestAnimationFrame(animate);
+      if (autoRotate) rotY += 0.0005; // slow, realistic spin
+      earth.rotation.y = rotY;
+      earth.rotation.x = rotX;
+      clouds.rotation.y = rotY * 1.1 + 0.02;
+      clouds.rotation.x = rotX;
+      frame++;
+      if (frame % 30 === 0) updateSunPosition(); // keep terminator locked to real current time
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', function(){
+      const w = container.clientWidth, h = container.clientHeight;
+      if (!w || !h) return;
+      renderer.setSize(w, h);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    });
+  }
+
+  /* ================= FREELY DRAGGABLE, WORLDWIDE WEATHER RADAR MAP (Leaflet + RainViewer) ================= */
+  let radarMap = null;
+  let rainviewerLayer = null;
+
+  function initRadarMap(){
+    const el = document.getElementById('radar-map');
+    if (!el || typeof L === 'undefined') return;
+    radarMap = L.map('radar-map', {
+      center: [23.6, 120.6],
+      zoom: 5,
+      minZoom: 2,      // zoom all the way out to the whole world
+      maxZoom: 12,
+      worldCopyJump: true  // lets you drag past the antimeridian and keep going
+    });
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 20,
+      noWrap: false
+    }).addTo(radarMap);
+
+    // Global precipitation radar (RainViewer) — one continuous layer covering
+    // the whole world, not a small Taiwan-only patch.
+    loadRainviewerLayer();
+
+    window.addEventListener('resize', function(){
+      if (radarMap) radarMap.invalidateSize();
+    });
+  }
+
+  async function loadRainviewerLayer(){
+    if (!radarMap) return;
+    try {
+      const resp = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+      const data = await resp.json();
+      const frames = (data && data.radar && data.radar.past) || [];
+      const latest = frames[frames.length - 1];
+      if (!latest) return;
+      const tileUrl = 'https://tilecache.rainviewer.com' + latest.path + '/256/{z}/{x}/{y}/2/1_1.png';
+      if (rainviewerLayer) radarMap.removeLayer(rainviewerLayer);
+      rainviewerLayer = L.tileLayer(tileUrl, { opacity: 0.7, zIndex: 400, maxNativeZoom: 10 }).addTo(radarMap);
+    } catch (e){ /* global layer is a bonus — base map still works without it */ }
+  }
+
+  function refreshRadarOverlay(){
+    loadRainviewerLayer();
+  }
 
   /* ================= FORECAST / GPS (Open-Meteo, global, no API key) ================= */
   function t(key){
@@ -1464,6 +1753,8 @@
   initUnitButtons();
 
   applyLang(detectInitialLang());
+  initGlobe();
+  initRadarMap();
   refreshImages();
   setInterval(refreshImages, 10 * 60 * 1000); // every 10 minutes
 </script>
